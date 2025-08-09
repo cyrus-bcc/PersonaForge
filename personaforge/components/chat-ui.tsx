@@ -19,6 +19,8 @@ import {
 } from "@/lib/client-personas"
 import { loadFaq, findFaqAnswer } from "@/lib/faq"
 import type { Persona } from "@/types/persona"
+import MarkdownComponent from "@/components/markdown"
+import { formatAssistantText } from "@/lib/text-format"
 
 type ChatMessage = {
   id: string
@@ -165,21 +167,29 @@ export default function ChatUI() {
               </Alert>
             )}
 
-            {messages.map((m) => (
-              <div key={m.id} className={m.role === "user" ? "text-right" : "text-left"}>
-                <div
-                  className={[
-                    "inline-block rounded-lg px-3 py-2 text-sm",
-                    m.role === "user" ? "bg-emerald-600 text-white" : "bg-muted",
-                  ].join(" ")}
-                >
-                  {m.content}
+            {messages.map((m) => {
+              const isUser = m.role === "user"
+              const content = isUser ? m.content : formatAssistantText(m.content)
+              return (
+                <div key={m.id} className={isUser ? "text-right" : "text-left"}>
+                  <div
+                    className={[
+                      "inline-block max-w-[85%] rounded-lg px-3 py-2 leading-relaxed break-words",
+                      isUser ? "bg-emerald-600 text-white text-sm" : "bg-muted text-base",
+                    ].join(" ")}
+                  >
+                    {isUser ? (
+                      <span className="whitespace-pre-wrap">{content}</span>
+                    ) : (
+                      <MarkdownComponent content={content} />
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
 
             {loading && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Generating response...
               </div>
@@ -240,7 +250,8 @@ I can help evaluate pros/cons if you share details.`
 function maybeWrapWithGuard(text: string, risk: ReturnType<typeof assessImpulsiveRisk>): string {
   if (risk.level === "high") {
     return [
-      "Before proceeding, let’s slow down and double-check a few items:",
+      "### Impulse guard",
+      "",
       ...risk.checklist.map((c, i) => `${i + 1}. ${c}`),
       "",
       "Once you confirm each item, I can outline next steps.",
@@ -249,7 +260,7 @@ function maybeWrapWithGuard(text: string, risk: ReturnType<typeof assessImpulsiv
     ].join("\n")
   }
   if (risk.level === "medium") {
-    return ["Quick caution:", ...risk.checklist.map((c, i) => `${i + 1}. ${c}`), "", text].join("\n")
+    return ["### Quick caution", "", ...risk.checklist.map((c, i) => `${i + 1}. ${c}`), "", text].join("\n")
   }
   return text
 }

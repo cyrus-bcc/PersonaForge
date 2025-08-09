@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   }
 
   const sel = selectModel()
-  if ("error" in sel) {
+  if ("error" in sel && sel.error) {
     return NextResponse.json(
       { error: sel.error.message, code: sel.error.code, provider: process.env.AI_PROVIDER || "openai" },
       { status: 400 },
