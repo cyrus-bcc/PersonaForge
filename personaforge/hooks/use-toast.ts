@@ -158,10 +158,10 @@ function toast({ ...props }: Toast) {
       ...props,
       id,
       open: true,
-      onOpenChange: (open: boolean) => {
+      onOpenChange: (open) => {
         if (!open) dismiss()
       },
-    } as ToasterToast & { open: boolean; onOpenChange: (open: boolean) => void },
+    },
   })
 
   return {

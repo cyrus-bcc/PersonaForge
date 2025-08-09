@@ -1,11 +1,11 @@
-'use client'
+"use client"
 
-import Link from 'next/link'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { BadgeCheck, BrainCircuit, Sparkles, UserCog2 } from 'lucide-react'
-import RiveBadge from '@/components/rive-badge'
-import AppShell from '@/components/app-shell'
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { BadgeCheck, BrainCircuit, Sparkles, UserCog2 } from "lucide-react"
+import RiveBadge from "@/components/rive-badge"
+import AppShell from "@/components/app-shell"
 
 export default function HomePage() {
   return (
@@ -13,12 +13,10 @@ export default function HomePage() {
       <main className="mx-auto w-full max-w-6xl px-4 py-10">
         <section className="grid gap-8 md:grid-cols-2 md:items-center">
           <div className="space-y-6">
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-              PersonaForge
-            </h1>
+            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">PersonaForge</h1>
             <p className="text-muted-foreground">
-              An agentic AI system that builds and evolves a Synthetic Digital Twin Persona
-              for each customer—enabling adaptive, emotionally aware banking experiences.
+              An agentic AI system that builds and evolves a Synthetic Digital Twin Persona for each customer—enabling
+              adaptive, emotionally aware banking experiences.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link href="/personas">
@@ -26,6 +24,12 @@ export default function HomePage() {
               </Link>
               <Link href="/personas/new">
                 <Button variant="outline">Create Persona</Button>
+              </Link>
+              <Link href="/chat">
+                <Button variant="secondary" className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Open Chat Demo
+                </Button>
               </Link>
             </div>
 
@@ -88,7 +92,7 @@ export default function HomePage() {
               </div>
             </div>
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              Tip: drop a Rive file at {'/public/animations/persona-badge.riv'} or edit the path in RiveBadge.
+              Tip: drop a Rive file at {"/public/animations/persona-badge.riv"} or edit the path in RiveBadge.
             </p>
           </div>
         </section>

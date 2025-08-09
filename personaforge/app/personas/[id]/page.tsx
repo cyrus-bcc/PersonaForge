@@ -1,15 +1,16 @@
-'use client'
+"use client"
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import AppShell from '@/components/app-shell'
-import { getPersona } from '@/lib/api'
-import type { Persona } from '@/types/persona'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, MessageSquareQuote, PhoneCall, Share2 } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { useEffect, useState } from "react"
+import { useParams, useRouter } from "next/navigation"
+import AppShell from "@/components/app-shell"
+import { getPersona } from "@/lib/api"
+import { getLocalPersonaById } from "@/lib/client-personas"
+import type { Persona } from "@/types/persona"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, MessageSquareQuote, PhoneCall, Share2 } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default function PersonaDetailPage() {
   const params = useParams<{ id: string }>()
@@ -27,7 +28,14 @@ export default function PersonaDetailPage() {
         const data = await getPersona(params.id)
         if (mounted) setPersona(data)
       } catch (e: any) {
-        if (mounted) setError(e?.message ?? 'Failed to load persona')
+        if (mounted) {
+          setError(e?.message ?? "Failed to load persona")
+          const local = getLocalPersonaById(params.id)
+          if (local) {
+            setPersona(local)
+            setError(null)
+          }
+        }
       } finally {
         if (mounted) setLoading(false)
       }
@@ -58,10 +66,7 @@ export default function PersonaDetailPage() {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12">
-                    <AvatarImage
-                      src="/persona-avatar-placeholder.png"
-                      alt={`Avatar of ${persona.name}`}
-                    />
+                    <AvatarImage src="/persona-avatar-placeholder.png" alt={`Avatar of ${persona.name}`} />
                     <AvatarFallback>{persona.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div>

@@ -1,21 +1,22 @@
-'use client'
+"use client"
 
-import Link from 'next/link'
-import { PropsWithChildren } from 'react'
-import { Button } from '@/components/ui/button'
-import { Banknote, Home, PersonStanding } from 'lucide-react'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
+import Link from "next/link"
+import type { PropsWithChildren } from "react"
+import { Button } from "@/components/ui/button"
+import { Banknote, Home, PersonStanding, Sparkles } from "lucide-react"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
 
 type AppShellProps = PropsWithChildren<{
   title?: string
 }>
 
-export default function AppShell({ children, title = 'PersonaForge' }: AppShellProps) {
+export default function AppShell({ children, title = "PersonaForge" }: AppShellProps) {
   const pathname = usePathname()
   const nav = [
-    { href: '/', label: 'Home', icon: Home },
-    { href: '/personas', label: 'Personas', icon: PersonStanding },
+    { href: "/", label: "Home", icon: Home },
+    { href: "/personas", label: "Personas", icon: PersonStanding },
+    { href: "/chat", label: "Chat", icon: Sparkles },
   ]
 
   return (
@@ -35,9 +36,9 @@ export default function AppShell({ children, title = 'PersonaForge' }: AppShellP
               return (
                 <Link key={item.href} href={item.href}>
                   <Button
-                    variant={active ? 'default' : 'ghost'}
-                    className={cn('gap-2', active && 'bg-emerald-600 text-white hover:bg-emerald-600')}
-                    aria-current={active ? 'page' : undefined}
+                    variant={active ? "default" : "ghost"}
+                    className={cn("gap-2", active && "bg-emerald-600 text-white hover:bg-emerald-600")}
+                    aria-current={active ? "page" : undefined}
                   >
                     <Icon className="h-4 w-4" aria-hidden="true" />
                     {item.label}

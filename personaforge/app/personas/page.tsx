@@ -1,16 +1,17 @@
-'use client'
+"use client"
 
-import { useEffect, useMemo, useState } from 'react'
-import AppShell from '@/components/app-shell'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { PersonStanding, RefreshCcw } from 'lucide-react'
-import { getPersonas } from '@/lib/api'
-import PersonaCard from '@/components/persona-card'
-import type { Persona } from '@/types/persona'
+import { useEffect, useMemo, useState } from "react"
+import AppShell from "@/components/app-shell"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { PersonStanding, RefreshCcw } from "lucide-react"
+import { getPersonas } from "@/lib/api"
+import { getLocalPersonas } from "@/lib/client-personas"
+import PersonaCard from "@/components/persona-card"
+import type { Persona } from "@/types/persona"
 
 export default function PersonasPage() {
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
   const [personas, setPersonas] = useState<Persona[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -20,9 +21,11 @@ export default function PersonasPage() {
       setLoading(true)
       setError(null)
       const list = await getPersonas({ q: query })
-      setPersonas(list)
+      const locals = getLocalPersonas()
+      const merged = dedupeById([...list, ...locals])
+      setPersonas(merged)
     } catch (e: any) {
-      setError(e?.message ?? 'Failed to load personas')
+      setError(e?.message ?? "Failed to load personas")
     } finally {
       setLoading(false)
     }
@@ -40,9 +43,15 @@ export default function PersonasPage() {
       (p) =>
         p.name.toLowerCase().includes(q) ||
         p.summary.toLowerCase().includes(q) ||
-        p.goals.join(' ').toLowerCase().includes(q)
+        p.goals.join(" ").toLowerCase().includes(q),
     )
   }, [personas, query])
+
+  function dedupeById(arr: Persona[]) {
+    const map = new Map<string, Persona>()
+    for (const p of arr) map.set(p.id, p)
+    return Array.from(map.values())
+  }
 
   return (
     <AppShell>
