@@ -23,7 +23,7 @@ import { formatAssistantText } from "@/lib/text-format"
 
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string }
 
-export default function ChatUI() {
+export default function ChatUI({ className = "h-full min-h-0" }: { className?: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState("")
   const [loading, setLoading] = useState(false)
@@ -95,9 +95,9 @@ export default function ChatUI() {
   }
 
   return (
-    <Card>
-      <CardContent className="p-0">
-        <div className="grid h-[70vh] grid-rows-[auto_1fr_auto]">
+    <Card className={className}>
+      <CardContent className="h-full p-0">
+        <div className="grid h-full grid-rows-[auto_1fr_auto]">
           <div className="border-b p-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-emerald-600" />
@@ -111,7 +111,7 @@ export default function ChatUI() {
             )}
           </div>
 
-          <div ref={listRef} className="overflow-y-auto p-4 space-y-3">
+          <div ref={listRef} className="min-h-0 overflow-y-auto p-4 space-y-3">
             {persona ? (
               <Alert variant="default">
                 <AlertTitle>Persona Active</AlertTitle>

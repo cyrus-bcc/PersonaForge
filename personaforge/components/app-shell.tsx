@@ -7,9 +7,7 @@ import { Banknote, Home, PersonStanding, Sparkles } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 
-type AppShellProps = PropsWithChildren<{
-  title?: string
-}>
+type AppShellProps = PropsWithChildren<{ title?: string }>
 
 export default function AppShell({ children, title = "PersonaForge" }: AppShellProps) {
   const pathname = usePathname()
@@ -20,7 +18,7 @@ export default function AppShell({ children, title = "PersonaForge" }: AppShellP
   ]
 
   return (
-    <div className="min-h-dvh">
+    <div className="grid h-dvh grid-rows-[auto_1fr_auto]">
       <header className="border-b bg-background">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <Link href="/" className="flex items-center gap-2">
@@ -28,7 +26,6 @@ export default function AppShell({ children, title = "PersonaForge" }: AppShellP
             <span className="font-semibold">{title}</span>
             <span className="sr-only">Go to home</span>
           </Link>
-
           <nav aria-label="Main navigation" className="flex items-center gap-1">
             {nav.map((item) => {
               const Icon = item.icon
@@ -50,7 +47,8 @@ export default function AppShell({ children, title = "PersonaForge" }: AppShellP
         </div>
       </header>
 
-      <div>{children}</div>
+      {/* This row fills remaining space and does NOT scroll the page */}
+      <main className="min-h-0 overflow-hidden">{children}</main>
 
       <footer className="border-t bg-background">
         <div className="mx-auto w-full max-w-6xl px-4 py-6 text-xs text-muted-foreground">
