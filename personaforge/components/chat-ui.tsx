@@ -19,7 +19,7 @@ import {
 } from "@/lib/client-personas"
 import { loadFaq, findFaqAnswer } from "@/lib/faq"
 import type { Persona } from "@/types/persona"
-import MarkdownComponent from "@/components/markdown"
+import Markdown from "@/components/markdown"
 import { formatAssistantText } from "@/lib/text-format"
 
 type ChatMessage = {
@@ -178,11 +178,7 @@ export default function ChatUI() {
                       isUser ? "bg-emerald-600 text-white text-sm" : "bg-muted text-base",
                     ].join(" ")}
                   >
-                    {isUser ? (
-                      <span className="whitespace-pre-wrap">{content}</span>
-                    ) : (
-                      <MarkdownComponent content={content} />
-                    )}
+                    {isUser ? <span className="whitespace-pre-wrap">{content}</span> : <Markdown>{content}</Markdown>}
                   </div>
                 </div>
               )
