@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useMemo, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,11 +21,7 @@ import type { Persona } from "@/types/persona"
 import Markdown from "@/components/markdown"
 import { formatAssistantText } from "@/lib/text-format"
 
-type ChatMessage = {
-  id: string
-  role: "user" | "assistant"
-  content: string
-}
+type ChatMessage = { id: string; role: "user" | "assistant"; content: string }
 
 export default function ChatUI() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -38,14 +33,12 @@ export default function ChatUI() {
 
   const listRef = useRef<HTMLDivElement | null>(null)
 
-  // Load FAQ CSV once
   useEffect(() => {
     loadFaq("/data/faq.csv")
       .then(setFaq)
       .catch(() => setFaq([]))
   }, [])
 
-  // Ensure persona for this session (created on first user message)
   useEffect(() => {
     const id = getOrCreateSessionPersonaId()
     const p = getLocalPersonaById(id)
@@ -56,11 +49,9 @@ export default function ChatUI() {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: "smooth" })
   }, [messages, riskInfo])
 
-  // Derive simple emotion from latest user message
   const latestEmotion = useMemo(() => {
     const lastUser = [...messages].reverse().find((m) => m.role === "user")
-    if (!lastUser) return null
-    return analyzeEmotion(lastUser.content)
+    return lastUser ? analyzeEmotion(lastUser.content) : null
   }, [messages])
 
   async function handleSend(e?: React.FormEvent) {
@@ -72,20 +63,17 @@ export default function ChatUI() {
     setMessages((m) => [...m, userMsg])
     setInput("")
 
-    // Persona lifecycle: if not exists, create from first message
     const current = persona
     if (!current) {
       const created = createPersonaFromFirstMessage(text)
       setPersona(created)
     }
 
-    // Guardrails: assess impulsive risk (e.g., euphoric loan talk)
     const emotion = analyzeEmotion(text)
     const risk = assessImpulsiveRisk(text, emotion)
     setRiskInfo(risk.level === "low" ? null : risk)
 
     setLoading(true)
-
     try {
       const assistantText = await getAssistantReply({
         messages: [...messages, userMsg],
@@ -93,28 +81,14 @@ export default function ChatUI() {
         faq,
         risk,
       })
+      setMessages((m) => [...m, { id: crypto.randomUUID(), role: "assistant", content: assistantText }])
 
-      const asstMsg: ChatMessage = { id: crypto.randomUUID(), role: "assistant", content: assistantText }
-      setMessages((m) => [...m, asstMsg])
-
-      // Evolve persona a bit from each interaction (very naive baseline)
       const p = getLocalPersonaById(getOrCreateSessionPersonaId())
       if (p) {
-        const updated: Persona = {
-          ...p,
-          tonePreference: emotion.label, // update tone
-          updatedAt: new Date().toISOString(),
-        }
+        const updated: Persona = { ...p, tonePreference: emotion.label, updatedAt: new Date().toISOString() }
         saveLocalPersona(updated)
         setPersona(updated)
       }
-    } catch (err: any) {
-      const asstMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: "Sorry, I ran into an issue generating a reply.",
-      }
-      setMessages((m) => [...m, asstMsg])
     } finally {
       setLoading(false)
     }
@@ -123,7 +97,7 @@ export default function ChatUI() {
   return (
     <Card>
       <CardContent className="p-0">
-        <div className="grid grid-rows-[auto_1fr_auto] h-[70vh]">
+        <div className="grid h-[70vh] grid-rows-[auto_1fr_auto]">
           <div className="border-b p-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-emerald-600" />
@@ -131,12 +105,8 @@ export default function ChatUI() {
             </div>
             {latestEmotion && (
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" aria-label={`Emotion: ${latestEmotion.label}`}>
-                  {latestEmotion.label} {latestEmotion.intensity > 1 ? `(${latestEmotion.intensity})` : ""}
-                </Badge>
-                <Badge variant="outline" aria-label={`Score: ${latestEmotion.score}`}>
-                  score {latestEmotion.score}
-                </Badge>
+                <Badge variant="secondary">{latestEmotion.label}</Badge>
+                <Badge variant="outline">score {latestEmotion.score}</Badge>
               </div>
             )}
           </div>
@@ -150,14 +120,7 @@ export default function ChatUI() {
                   {persona.contactChannels.join(", ")}
                 </AlertDescription>
               </Alert>
-            ) : (
-              <Alert variant="default">
-                <AlertTitle>Persona will be created</AlertTitle>
-                <AlertDescription className="text-xs">
-                  Your first message will create a synthetic persona for this session.
-                </AlertDescription>
-              </Alert>
-            )}
+            ) : null}
 
             {riskInfo && (
               <Alert variant="destructive" role="alert">
@@ -175,10 +138,15 @@ export default function ChatUI() {
                   <div
                     className={[
                       "inline-block max-w-[85%] rounded-lg px-3 py-2 leading-relaxed break-words",
-                      isUser ? "bg-emerald-600 text-white text-sm" : "bg-muted text-base",
+                      // Make sizes consistent: both text-sm
+                      isUser ? "bg-emerald-600 text-white text-sm" : "bg-muted text-sm",
                     ].join(" ")}
                   >
-                    {isUser ? <span className="whitespace-pre-wrap">{content}</span> : <Markdown>{content}</Markdown>}
+                    {isUser ? (
+                      <span className="whitespace-pre-wrap">{content}</span>
+                    ) : (
+                      <Markdown className="whitespace-pre-wrap">{content}</Markdown>
+                    )}
                   </div>
                 </div>
               )
@@ -215,7 +183,6 @@ async function getAssistantReply(args: {
   faq: { q: string; a: string }[]
   risk: ReturnType<typeof assessImpulsiveRisk>
 }): Promise<string> {
-  // Try server AI (if OPENAI_API_KEY is configured). Otherwise, fallback to FAQ.
   try {
     const res = await fetch("/api/ai", {
       method: "POST",
@@ -224,39 +191,16 @@ async function getAssistantReply(args: {
     })
     if (res.ok) {
       const data = (await res.json()) as { text: string }
-      return maybeWrapWithGuard(data.text, args.risk)
+      return data.text
     }
-  } catch {
-    // ignore and fallback
-  }
-
-  // Offline fallback: FAQ lookup or a default heuristic response
+  } catch {}
   const lastUser = [...args.messages].reverse().find((m) => m.role === "user")?.content ?? ""
   const found = findFaqAnswer(lastUser, args.faq)
-  const base =
+  return (
     found ??
-    `I’m not fully configured with an AI provider yet, but here’s a safe-first approach:\n
+    `I’m not fully configured with an AI provider yet, but here’s a safe-first approach:
 - Clarify your goal, amount, and timeline.
 - Compare at least 3 options (APR, fees, prepayment rules).
-- Simulate cash flow impact across 3–6 months.
-I can help evaluate pros/cons if you share details.`
-  return maybeWrapWithGuard(base, args.risk)
-}
-
-function maybeWrapWithGuard(text: string, risk: ReturnType<typeof assessImpulsiveRisk>): string {
-  if (risk.level === "high") {
-    return [
-      "### Impulse guard",
-      "",
-      ...risk.checklist.map((c, i) => `${i + 1}. ${c}`),
-      "",
-      "Once you confirm each item, I can outline next steps.",
-      "",
-      text,
-    ].join("\n")
-  }
-  if (risk.level === "medium") {
-    return ["### Quick caution", "", ...risk.checklist.map((c, i) => `${i + 1}. ${c}`), "", text].join("\n")
-  }
-  return text
+- Simulate cash flow impact across 3–6 months.`
+  )
 }
