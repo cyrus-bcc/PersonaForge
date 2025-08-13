@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, ShieldAlert, Sparkles } from "lucide-react"
+import { Loader2, ShieldAlert, Sparkles, Cpu } from "lucide-react"
 import { analyzeEmotion } from "@/lib/emotion"
 import { assessImpulsiveRisk } from "@/lib/guardrails"
 import {
@@ -22,6 +22,7 @@ import Markdown from "@/components/markdown"
 import { formatAssistantText } from "@/lib/text-format"
 
 type ChatMessage = { id: string; role: "user" | "assistant"; content: string }
+type ModelInfo = { provider: string; model: string; config?: string }
 
 export default function ChatUI({ className = "h-full min-h-0" }: { className?: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -30,6 +31,7 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
   const [faq, setFaq] = useState<{ q: string; a: string }[]>([])
   const [persona, setPersona] = useState<Persona | null>(null)
   const [riskInfo, setRiskInfo] = useState<ReturnType<typeof assessImpulsiveRisk> | null>(null)
+  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null)
 
   const listRef = useRef<HTMLDivElement | null>(null)
 
@@ -43,6 +45,22 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
     const id = getOrCreateSessionPersonaId()
     const p = getLocalPersonaById(id)
     if (p) setPersona(p)
+  }, [])
+
+  // Check model info on mount
+  useEffect(() => {
+    fetch("/api/ai/ping")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.configured) {
+          setModelInfo({
+            provider: data.provider,
+            model: data.model,
+            config: data.fallback ? `fallback from ${data.fallback}` : undefined,
+          })
+        }
+      })
+      .catch(() => setModelInfo({ provider: "offline", model: "FAQ mode" }))
   }, [])
 
   useEffect(() => {
@@ -75,13 +93,19 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
 
     setLoading(true)
     try {
-      const assistantText = await getAssistantReply({
+      const result = await getAssistantReply({
         messages: [...messages, userMsg],
         persona: current ?? getLocalPersonaById(getOrCreateSessionPersonaId()),
         faq,
         risk,
       })
-      setMessages((m) => [...m, { id: crypto.randomUUID(), role: "assistant", content: assistantText }])
+
+      setMessages((m) => [...m, { id: crypto.randomUUID(), role: "assistant", content: result.text }])
+
+      // Update model info from the actual response
+      if (result.modelInfo) {
+        setModelInfo(result.modelInfo)
+      }
 
       const p = getLocalPersonaById(getOrCreateSessionPersonaId())
       if (p) {
@@ -103,15 +127,42 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
               <Sparkles className="h-4 w-4 text-emerald-600" />
               <p className="text-sm font-medium">Persona-aware Chat</p>
             </div>
-            {latestEmotion && (
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary">{latestEmotion.label}</Badge>
-                <Badge variant="outline">score {latestEmotion.score}</Badge>
-              </div>
-            )}
+            <div className="flex items-center gap-2">
+              {/* Model Info Badge */}
+              {modelInfo && (
+                <Badge variant="outline" className="gap-1">
+                  <Cpu className="h-3 w-3" />
+                  <span className="text-xs">
+                    {modelInfo.provider === "groq" && "🚀"}
+                    {modelInfo.provider === "openai" && "🤖"}
+                    {modelInfo.provider === "offline" && "📚"}
+                    {modelInfo.provider}/{modelInfo.model.split("-").slice(-2).join("-")}
+                  </span>
+                </Badge>
+              )}
+              {/* Emotion Badges */}
+              {latestEmotion && (
+                <>
+                  <Badge variant="secondary">{latestEmotion.label}</Badge>
+                  <Badge variant="outline">score {latestEmotion.score}</Badge>
+                </>
+              )}
+            </div>
           </div>
 
           <div ref={listRef} className="min-h-0 overflow-y-auto p-4 space-y-3">
+            {/* Model Info Alert */}
+            {modelInfo && (
+              <Alert variant="default">
+                <Cpu className="h-4 w-4" />
+                <AlertTitle>AI Model Active</AlertTitle>
+                <AlertDescription className="text-xs">
+                  Using {modelInfo.provider.toUpperCase()} • {modelInfo.model}
+                  {modelInfo.config && ` • ${modelInfo.config}`}
+                </AlertDescription>
+              </Alert>
+            )}
+
             {persona ? (
               <Alert variant="default">
                 <AlertTitle>Persona Active</AlertTitle>
@@ -182,7 +233,7 @@ async function getAssistantReply(args: {
   persona: Persona | null
   faq: { q: string; a: string }[]
   risk: ReturnType<typeof assessImpulsiveRisk>
-}): Promise<string> {
+}): Promise<{ text: string; modelInfo?: ModelInfo }> {
   try {
     const res = await fetch("/api/ai", {
       method: "POST",
@@ -190,17 +241,29 @@ async function getAssistantReply(args: {
       body: JSON.stringify({ messages: args.messages, persona: args.persona, risk: args.risk }),
     })
     if (res.ok) {
-      const data = (await res.json()) as { text: string }
-      return data.text
+      const data = (await res.json()) as { text: string; provider?: string; model?: string; config?: string }
+      return {
+        text: data.text,
+        modelInfo: data.provider
+          ? {
+              provider: data.provider,
+              model: data.model || "unknown",
+              config: data.config,
+            }
+          : undefined,
+      }
     }
   } catch {}
+
   const lastUser = [...args.messages].reverse().find((m) => m.role === "user")?.content ?? ""
   const found = findFaqAnswer(lastUser, args.faq)
-  return (
-    found ??
-    `I’m not fully configured with an AI provider yet, but here’s a safe-first approach:
+  return {
+    text:
+      found ??
+      `I'm not fully configured with an AI provider yet, but here's a safe-first approach:
 - Clarify your goal, amount, and timeline.
 - Compare at least 3 options (APR, fees, prepayment rules).
-- Simulate cash flow impact across 3–6 months.`
-  )
+- Simulate cash flow impact across 3–6 months.`,
+    modelInfo: { provider: "offline", model: "FAQ mode" },
+  }
 }
