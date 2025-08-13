@@ -1,0 +1,13 @@
+node_modules
+personaforge/.next/app-build-manifest.json
+personaforge/.next/cache/webpack/client-development/0.pack.gz
+personaforge/.next/cache/webpack/client-development/3.pack.gz
+personaforge/.next/cache/webpack/client-development/index.pack.gz
+personaforge/.next/cache/webpack/client-development/index.pack.gz.old
+personaforge/.next/cache/webpack/server-development/0.pack.gz
+personaforge/.next/cache/webpack/server-development/index.pack.gz
+personaforge/.next/cache/webpack/server-development/index.pack.gz.old
+personaforge/.next/react-loadable-manifest.json
+personaforge/.next/server/app-paths-manifest.json
+personaforge/.next/server/middleware-react-loadable-manifest.js
+personaforge/.next/trace

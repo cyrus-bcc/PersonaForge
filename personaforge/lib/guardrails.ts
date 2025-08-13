@@ -1,0 +1,51 @@
+import type { EmotionResult } from "./emotion"
+
+const RISK_KEYWORDS = [
+  "loan",
+  "credit",
+  "cash advance",
+  "buy now",
+  "margin",
+  "gamble",
+  "crypto",
+  "meme",
+  "leverage",
+  "borrow",
+  "debt",
+  "payday",
+]
+
+export function assessImpulsiveRisk(message: string, emotion: EmotionResult) {
+  const t = message.toLowerCase()
+  const mentionsRisk = RISK_KEYWORDS.some((k) => t.includes(k))
+  let level: "low" | "medium" | "high" = "low"
+
+  if (mentionsRisk && (emotion.label === "euphoric" || emotion.intensity >= 2)) level = "high"
+  else if (mentionsRisk) level = "medium"
+
+  const checklist =
+    level === "high"
+      ? [
+          "Have you compared at least 3 offers (APR, fees, early payment rules)?",
+          "Can your monthly cash flow absorb the payment with a 10% buffer?",
+          "Any penalties or lock-ins that reduce flexibility?",
+          "Have you considered lower-risk alternatives (e.g., saving timeline, smaller amount)?",
+          "Take a 24-hour pause before committing; decisions improve after a cooling-off period.",
+        ]
+      : level === "medium"
+        ? [
+            "Compare APR and total cost of ownership.",
+            "Check cash flow impact for the next 3–6 months.",
+            "Consider alternatives or smaller amounts.",
+          ]
+        : []
+
+  const messageOut =
+    level === "high"
+      ? "I sense strong excitement around a risky topic. Let’s slow down to avoid impulsive decisions that could be costly."
+      : level === "medium"
+        ? "This topic can carry costs. A quick safety check can help you choose wisely."
+        : ""
+
+  return { level, message: messageOut, checklist }
+}
