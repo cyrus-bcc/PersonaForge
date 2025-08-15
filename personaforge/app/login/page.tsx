@@ -35,14 +35,14 @@ export default function LoginPage() {
         return
       }
 
+      // Set auth state first
       setAuthState({ isAuthenticated: true, user })
-      setSuccess("Login successful! Redirecting...")
+      setSuccess("Login successful! Redirecting to home...")
 
-      // Redirect to home page after login
+      // Simple redirect without reload
       setTimeout(() => {
-        router.push("/")
-        window.location.reload() // Force page reload to update auth state
-      }, 500)
+        router.replace("/")
+      }, 800)
     } catch (err: any) {
       setError(err.message || "Login failed")
     } finally {
@@ -74,14 +74,15 @@ export default function LoginPage() {
 
     try {
       const user = registerUser(email, password, name)
+
+      // Set auth state first
       setAuthState({ isAuthenticated: true, user })
       setSuccess("Account created successfully! Redirecting to home...")
 
-      // Redirect to home page after registration
+      // Simple redirect without reload
       setTimeout(() => {
-        router.push("/")
-        window.location.reload() // Force page reload to update auth state
-      }, 1000)
+        router.replace("/")
+      }, 800)
     } catch (err: any) {
       setError(err.message || "Registration failed")
     } finally {

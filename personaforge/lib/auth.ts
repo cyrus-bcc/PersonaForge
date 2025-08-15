@@ -42,8 +42,10 @@ export function getAuthState(): AuthState {
 export function setAuthState(auth: AuthState) {
   localStorage.setItem(AUTH_KEY, JSON.stringify(auth))
 
-  // Trigger a custom event to notify other components
-  window.dispatchEvent(new CustomEvent("authStateChanged", { detail: auth }))
+  // Trigger a custom event to notify other components immediately
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("authStateChanged", { detail: auth }))
+  }
 }
 
 export function logout() {
@@ -52,7 +54,9 @@ export function logout() {
   sessionStorage.removeItem("pf_session_persona_id")
 
   // Trigger auth state change event
-  window.dispatchEvent(new CustomEvent("authStateChanged", { detail: { isAuthenticated: false, user: null } }))
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("authStateChanged", { detail: { isAuthenticated: false, user: null } }))
+  }
 }
 
 export function getAllUsers(): UserProfile[] {

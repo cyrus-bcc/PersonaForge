@@ -18,7 +18,19 @@ export default function AppShell({ children, title = "PersonaForge" }: AppShellP
   const [auth, setAuth] = useState<AuthState>({ isAuthenticated: false, user: null })
 
   useEffect(() => {
+    // Initial auth check
     setAuth(getAuthState())
+
+    // Listen for auth state changes
+    function handleAuthChange(event: CustomEvent) {
+      setAuth(event.detail)
+    }
+
+    window.addEventListener("authStateChanged", handleAuthChange as EventListener)
+
+    return () => {
+      window.removeEventListener("authStateChanged", handleAuthChange as EventListener)
+    }
   }, [])
 
   const nav = [
@@ -29,8 +41,7 @@ export default function AppShell({ children, title = "PersonaForge" }: AppShellP
 
   function handleLogout() {
     logout()
-    setAuth({ isAuthenticated: false, user: null })
-    router.push("/")
+    router.replace("/login")
   }
 
   return (
