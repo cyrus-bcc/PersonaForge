@@ -1,0 +1,127 @@
+import type { UserProfile } from "@/types/user"
+import type { Persona } from "@/types/persona"
+import { saveLocalPersona } from "@/lib/client-personas"
+
+export function createPersonaFromProfile(profile: UserProfile): Persona {
+  const now = new Date().toISOString()
+
+  // Map user profile to persona attributes
+  const riskAffinity = mapRiskTolerance(profile.riskTolerance)
+  const tonePreference = profile.communicationStyle || "friendly"
+  const contactChannels = profile.preferredChannels.map(mapChannel).filter(Boolean) as Persona["contactChannels"]
+
+  // Generate persona summary based on profile
+  const summary = generatePersonaSummary(profile)
+
+  // Map financial goals to persona goals
+  const goals = profile.financialGoals.map((goal) => goal.toLowerCase())
+
+  const persona: Persona = {
+    id: `profile-${profile.id}-${Date.now()}`,
+    name: profile.name,
+    summary,
+    status: "active",
+    riskAffinity,
+    tonePreference,
+    contactChannels: contactChannels.length > 0 ? contactChannels : ["app push", "email"],
+    goals: goals.length > 0 ? goals : ["financial wellness"],
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  // Save to local storage
+  saveLocalPersona(persona)
+
+  return persona
+}
+
+function mapRiskTolerance(riskTolerance?: UserProfile["riskTolerance"]): Persona["riskAffinity"] {
+  switch (riskTolerance) {
+    case "very-conservative":
+    case "conservative":
+      return "conservative"
+    case "moderate":
+      return "moderate"
+    case "aggressive":
+      return "balanced"
+    case "very-aggressive":
+      return "growth"
+    default:
+      return "moderate"
+  }
+}
+
+function mapChannel(channel: string): Persona["contactChannels"][0] | null {
+  switch (channel) {
+    case "app-push":
+      return "app push"
+    case "email":
+      return "email"
+    case "sms":
+      return "sms"
+    case "whatsapp":
+      return "whatsapp"
+    default:
+      return null
+  }
+}
+
+function generatePersonaSummary(profile: UserProfile): string {
+  const parts: string[] = []
+
+  // Age and occupation context
+  if (profile.age && profile.occupation) {
+    parts.push(`${profile.age}-year-old ${profile.occupation.toLowerCase()}`)
+  } else if (profile.occupation) {
+    parts.push(`${profile.occupation}`)
+  } else if (profile.age) {
+    parts.push(`${profile.age}-year-old professional`)
+  }
+
+  // Experience level
+  if (profile.bankingExperience) {
+    const expMap = {
+      beginner: "new to banking",
+      intermediate: "with moderate banking experience",
+      advanced: "with advanced financial knowledge",
+      expert: "with expert-level financial expertise",
+    }
+    parts.push(expMap[profile.bankingExperience])
+  }
+
+  // Primary goals (top 2)
+  if (profile.financialGoals.length > 0) {
+    const topGoals = profile.financialGoals.slice(0, 2).map((g) => g.toLowerCase())
+    parts.push(`focused on ${topGoals.join(" and ")}`)
+  }
+
+  // Communication preference
+  if (profile.communicationStyle) {
+    const styleMap = {
+      formal: "prefers professional communication",
+      friendly: "enjoys friendly, approachable guidance",
+      concise: "values brief, to-the-point advice",
+      detailed: "appreciates comprehensive explanations",
+      empathetic: "responds well to understanding, supportive tone",
+    }
+    parts.push(styleMap[profile.communicationStyle])
+  }
+
+  // Decision making style
+  if (profile.decisionMaking) {
+    const decisionMap = {
+      quick: "makes fast financial decisions",
+      "research-heavy": "thoroughly researches before deciding",
+      collaborative: "likes to discuss options with others",
+      cautious: "takes time to carefully consider all options",
+    }
+    parts.push(decisionMap[profile.decisionMaking])
+  }
+
+  // Top concern
+  if (profile.financialConcerns.length > 0) {
+    parts.push(`particularly concerned about ${profile.financialConcerns[0].toLowerCase()}`)
+  }
+
+  return parts.join(", ") + "."
+}
