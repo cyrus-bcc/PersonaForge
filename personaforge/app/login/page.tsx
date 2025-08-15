@@ -12,7 +12,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Banknote, LogIn, UserPlus } from "lucide-react"
 import { authenticateUser, registerUser, setAuthState } from "@/lib/auth"
-import Link from "next/link"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -39,9 +38,11 @@ export default function LoginPage() {
       setAuthState({ isAuthenticated: true, user })
       setSuccess("Login successful! Redirecting...")
 
+      // Redirect to home page after login
       setTimeout(() => {
-        router.push("/profile")
-      }, 1000)
+        router.push("/")
+        window.location.reload() // Force page reload to update auth state
+      }, 500)
     } catch (err: any) {
       setError(err.message || "Login failed")
     } finally {
@@ -65,13 +66,21 @@ export default function LoginPage() {
       return
     }
 
+    if (password.length < 3) {
+      setError("Password must be at least 3 characters")
+      setLoading(false)
+      return
+    }
+
     try {
       const user = registerUser(email, password, name)
       setAuthState({ isAuthenticated: true, user })
-      setSuccess("Account created! Redirecting to profile setup...")
+      setSuccess("Account created successfully! Redirecting to home...")
 
+      // Redirect to home page after registration
       setTimeout(() => {
-        router.push("/profile")
+        router.push("/")
+        window.location.reload() // Force page reload to update auth state
       }, 1000)
     } catch (err: any) {
       setError(err.message || "Registration failed")
@@ -84,10 +93,10 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 to-teal-50 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold text-emerald-600">
+          <div className="inline-flex items-center gap-2 text-2xl font-bold text-emerald-600">
             <Banknote className="h-8 w-8" />
             PersonaForge
-          </Link>
+          </div>
           <p className="mt-2 text-muted-foreground">Sign in to create your personalized banking AI</p>
         </div>
 
@@ -107,7 +116,14 @@ export default function LoginPage() {
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="login-email">Email</Label>
-                    <Input id="login-email" name="email" type="email" placeholder="your@email.com" required />
+                    <Input
+                      id="login-email"
+                      name="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      required
+                      disabled={loading}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="login-password">Password</Label>
@@ -117,6 +133,7 @@ export default function LoginPage() {
                       type="password"
                       placeholder="Enter your password"
                       required
+                      disabled={loading}
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
@@ -130,11 +147,25 @@ export default function LoginPage() {
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="register-name">Full Name</Label>
-                    <Input id="register-name" name="name" type="text" placeholder="John Doe" required />
+                    <Input
+                      id="register-name"
+                      name="name"
+                      type="text"
+                      placeholder="John Doe"
+                      required
+                      disabled={loading}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-email">Email</Label>
-                    <Input id="register-email" name="email" type="email" placeholder="your@email.com" required />
+                    <Input
+                      id="register-email"
+                      name="email"
+                      type="email"
+                      placeholder="your@email.com"
+                      required
+                      disabled={loading}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-password">Password</Label>
@@ -142,8 +173,10 @@ export default function LoginPage() {
                       id="register-password"
                       name="password"
                       type="password"
-                      placeholder="Create a password"
+                      placeholder="Create a password (min 3 chars)"
                       required
+                      disabled={loading}
+                      minLength={3}
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={loading}>
