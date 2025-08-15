@@ -101,7 +101,8 @@ export default function AppShell({ children, title = "PersonaForge" }: AppShellP
         </div>
       </header>
 
-      <main className="min-h-0 overflow-hidden">{children}</main>
+      {/* Changed: Allow scrolling in main content area */}
+      <main className="min-h-0 overflow-y-auto">{children}</main>
 
       <footer className="border-t bg-background">
         <div className="mx-auto w-full max-w-6xl px-4 py-6 text-xs text-muted-foreground">
