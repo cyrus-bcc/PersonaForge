@@ -1,28 +1,65 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { generateText } from "ai"
 import { openai as openaiProvider, createOpenAI } from "@ai-sdk/openai"
+import { AI_CONFIG } from "@/lib/ai-config"
 
-// Select provider and model using env vars; defaults are cost-friendly.
 function selectModel() {
-  const provider = (process.env.AI_PROVIDER || "openai").toLowerCase()
+  // Use forced provider if specified, otherwise use env var or default to groq
+  const provider =
+    AI_CONFIG.FORCE_PROVIDER === "auto" ? (process.env.AI_PROVIDER || "groq").toLowerCase() : AI_CONFIG.FORCE_PROVIDER
 
   if (provider === "groq") {
     const apiKey = process.env.GROQ_API_KEY
-    if (!apiKey) return { error: { code: "not_configured", message: "GROQ_API_KEY missing" } }
+    if (!apiKey) {
+      // Fallback to OpenAI if Groq not configured
+      if (process.env.OPENAI_API_KEY) {
+        const modelName = AI_CONFIG.OPENAI_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini"
+        return { model: openaiProvider(modelName), provider: "openai", modelName }
+      }
+      return { error: { code: "not_configured", message: "Neither GROQ_API_KEY nor OPENAI_API_KEY found" } }
+    }
     const groq = createOpenAI({
       baseURL: "https://api.groq.com/openai/v1",
       apiKey,
     })
-    const modelName = process.env.GROQ_MODEL || "llama-3.1-70b-versatile"
+    const modelName = AI_CONFIG.GROQ_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile"
     return { model: groq(modelName), provider: "groq", modelName }
   }
 
-  // Default: OpenAI
-  if (!process.env.OPENAI_API_KEY) {
-    return { error: { code: "not_configured", message: "OPENAI_API_KEY missing" } }
+  if (provider === "openai") {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) {
+      // Fallback to Groq if OpenAI not configured
+      if (process.env.GROQ_API_KEY) {
+        const groq = createOpenAI({
+          baseURL: "https://api.groq.com/openai/v1",
+          apiKey: process.env.GROQ_API_KEY,
+        })
+        const modelName = AI_CONFIG.GROQ_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile"
+        return { model: groq(modelName), provider: "groq", modelName }
+      }
+      return { error: { code: "not_configured", message: "Neither OPENAI_API_KEY nor GROQ_API_KEY found" } }
+    }
+    const modelName = AI_CONFIG.OPENAI_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini"
+    return { model: openaiProvider(modelName), provider: "openai", modelName }
   }
-  const modelName = process.env.OPENAI_MODEL || "gpt-4o-mini"
-  return { model: openaiProvider(modelName), provider: "openai", modelName }
+
+  // Default fallback: try Groq first, then OpenAI
+  if (process.env.GROQ_API_KEY) {
+    const groq = createOpenAI({
+      baseURL: "https://api.groq.com/openai/v1",
+      apiKey: process.env.GROQ_API_KEY,
+    })
+    const modelName = AI_CONFIG.GROQ_MODEL || process.env.GROQ_MODEL || "llama-3.3-70b-versatile"
+    return { model: groq(modelName), provider: "groq", modelName }
+  }
+
+  if (process.env.OPENAI_API_KEY) {
+    const modelName = AI_CONFIG.OPENAI_MODEL || process.env.OPENAI_MODEL || "gpt-4o-mini"
+    return { model: openaiProvider(modelName), provider: "openai", modelName }
+  }
+
+  return { error: { code: "not_configured", message: "Neither GROQ_API_KEY nor OPENAI_API_KEY found" } }
 }
 
 export async function POST(req: NextRequest) {
@@ -33,9 +70,9 @@ export async function POST(req: NextRequest) {
   }
 
   const sel = selectModel()
-  if ("error" in sel && sel.error) {
+  if ("error" in sel) {
     return NextResponse.json(
-      { error: sel.error.message, code: sel.error.code, provider: process.env.AI_PROVIDER || "openai" },
+      { error: sel.error?.message, code: sel.error?.code, provider: AI_CONFIG.FORCE_PROVIDER },
       { status: 400 },
     )
   }
@@ -63,7 +100,15 @@ export async function POST(req: NextRequest) {
       system,
       prompt: history,
     })
-    return NextResponse.json({ text, provider: sel.provider, model: sel.modelName })
+
+    const response = {
+      text,
+      provider: sel.provider,
+      model: sel.modelName,
+      ...(AI_CONFIG.DEBUG && { config: AI_CONFIG.FORCE_PROVIDER }),
+    }
+
+    return NextResponse.json(response)
   } catch (err: any) {
     const msg = String(err?.message ?? "AI error")
     const isQuota =
