@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, ShieldAlert, Cpu, Crown, Database, User } from "lucide-react"
+import { Loader2, ShieldAlert, Cpu, Crown, Database, User, AlertTriangle } from "lucide-react"
 import { analyzeEmotion } from "@/lib/emotion"
 import { assessImpulsiveRisk } from "@/lib/guardrails"
 import { getAuthState } from "@/lib/auth"
@@ -23,7 +23,7 @@ import type { FinancialSummary } from "@/types/transaction"
 import Markdown from "@/components/markdown"
 import { formatAssistantText } from "@/lib/text-format"
 
-type ChatMessage = { id: string; role: "user" | "assistant"; content: string; timestamp: string }
+type ChatMessage = { id: string; role: "user" | "assistant"; content: string; timestamp: string; saved?: boolean }
 type ModelInfo = { provider: string; model: string; config?: string }
 
 export default function ChatUI({ className = "h-full min-h-0" }: { className?: string }) {
@@ -37,6 +37,7 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
   const [conversationHistory, setConversationHistory] = useState<any[]>([])
   const [conversationId] = useState(() => `conv-${Date.now()}`)
   const [backendConnected, setBackendConnected] = useState(false)
+  const [conversationSaveErrors, setConversationSaveErrors] = useState<string[]>([])
 
   const listRef = useRef<HTMLDivElement | null>(null)
 
@@ -120,7 +121,7 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
     if (!text) return
 
     const timestamp = new Date().toISOString()
-    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: text, timestamp }
+    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", content: text, timestamp, saved: false }
     setMessages((m) => [...m, userMsg])
     setInput("")
 
@@ -128,9 +129,20 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
     const risk = assessImpulsiveRisk(text, emotion)
     setRiskInfo(risk.level === "low" ? null : risk)
 
-    // Save user message to backend
+    // Save user message to backend with better error handling
     if (userProfile && backendConnected) {
-      await saveConversationMessage(conversationId, userProfile.id, "user", text, "general", "web")
+      console.log("💾 Attempting to save user message...")
+      const saved = await saveConversationMessage(conversationId, userProfile.id, "user", text, "general", "web")
+
+      if (saved) {
+        console.log("✅ User message saved to backend")
+        setMessages((m) => m.map((msg) => (msg.id === userMsg.id ? { ...msg, saved: true } : msg)))
+      } else {
+        console.error("❌ Failed to save user message")
+        setConversationSaveErrors((errors) => [...errors, `Failed to save user message: ${text.substring(0, 50)}...`])
+      }
+    } else {
+      console.warn("⚠️ Not saving message - backend not connected or no user profile")
     }
 
     setLoading(true)
@@ -143,18 +155,38 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
         conversationHistory,
       })
 
-      const assistantMsg = {
+      const assistantMsg: ChatMessage = {
         id: crypto.randomUUID(),
-        role: "assistant" as const,
+        role: "assistant",
         content: result.text,
         timestamp: new Date().toISOString(),
+        saved: false,
       }
 
       setMessages((m) => [...m, assistantMsg])
 
-      // Save assistant message to backend
+      // Save assistant message to backend with better error handling
       if (userProfile && backendConnected) {
-        await saveConversationMessage(conversationId, userProfile.id, "assistant", result.text, "response", "web")
+        console.log("💾 Attempting to save assistant message...")
+        const saved = await saveConversationMessage(
+          conversationId,
+          userProfile.id,
+          "assistant",
+          result.text,
+          "response",
+          "web",
+        )
+
+        if (saved) {
+          console.log("✅ Assistant message saved to backend")
+          setMessages((m) => m.map((msg) => (msg.id === assistantMsg.id ? { ...msg, saved: true } : msg)))
+        } else {
+          console.error("❌ Failed to save assistant message")
+          setConversationSaveErrors((errors) => [
+            ...errors,
+            `Failed to save assistant message: ${result.text.substring(0, 50)}...`,
+          ])
+        }
       }
 
       // Update model info from the actual response
@@ -191,6 +223,13 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
                 <Database className="h-3 w-3" />
                 <span className="text-xs">{backendConnected ? "🟢 Backend" : "🔴 Offline"}</span>
               </Badge>
+              {/* Conversation Save Status */}
+              {conversationSaveErrors.length > 0 && (
+                <Badge variant="outline" className="gap-1 border-yellow-300 text-yellow-100">
+                  <AlertTriangle className="h-3 w-3" />
+                  <span className="text-xs">Save Issues</span>
+                </Badge>
+              )}
               {/* Model Info Badge */}
               {modelInfo && (
                 <Badge variant="outline" className="gap-1 border-white/20 text-white">
@@ -227,7 +266,7 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
                   {userProfile.name} ({userProfile.age}y, {userProfile.occupation}) • Income: ₱
                   {userProfile.monthly_income?.toLocaleString() || "N/A"} • Bank: {userProfile.primary_bank || "N/A"} •
                   Risk: {userProfile.risk_tolerance || "N/A"} • Financial data: {financialSummary ? "✓" : "✗"} •
-                  History: {conversationHistory.length} msgs
+                  History: {conversationHistory.length} msgs • Conv ID: {conversationId.slice(-8)}
                 </AlertDescription>
               </Alert>
             ) : (
@@ -236,6 +275,25 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
                 <AlertTitle className="text-orange-800">Limited Profile</AlertTitle>
                 <AlertDescription className="text-xs text-orange-700">
                   Using basic profile only. Complete your profile for personalized banking advice.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Conversation Save Errors */}
+            {conversationSaveErrors.length > 0 && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Conversation Save Issues</AlertTitle>
+                <AlertDescription className="text-xs">
+                  Some messages may not be saved to backend. Check console for details.
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-2 h-auto p-1 text-xs"
+                    onClick={() => setConversationSaveErrors([])}
+                  >
+                    Dismiss
+                  </Button>
                 </AlertDescription>
               </Alert>
             )}
@@ -266,7 +324,7 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
               return (
                 <div key={m.id} className={isUser ? "text-right" : "text-left"}>
                   <div
-                    className="inline-block max-w-[85%] rounded-lg px-3 py-2 leading-relaxed break-words text-sm"
+                    className="inline-block max-w-[85%] rounded-lg px-3 py-2 leading-relaxed break-words text-sm relative"
                     style={
                       isUser
                         ? { backgroundColor: "#7F1D1D", color: "white" } // Dark red for user messages
@@ -277,6 +335,18 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
                       <span className="whitespace-pre-wrap">{content}</span>
                     ) : (
                       <Markdown className="whitespace-pre-wrap">{content}</Markdown>
+                    )}
+                    {/* Save status indicator */}
+                    {backendConnected && (
+                      <div className="absolute -bottom-1 -right-1">
+                        {m.saved === true ? (
+                          <div className="w-2 h-2 bg-green-500 rounded-full" title="Saved to backend" />
+                        ) : m.saved === false ? (
+                          <div className="w-2 h-2 bg-red-500 rounded-full" title="Not saved to backend" />
+                        ) : (
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse" title="Saving..." />
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
