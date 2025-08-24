@@ -56,23 +56,9 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
       return convertBackendPersonaToUserProfile(userPersona)
     }
 
-    // If no persona found, create a basic one for the user
-    console.log("No persona found for user, creating basic profile")
-    return {
-      id: `user-${userId}`,
-      email: userId,
-      name: userId.split("@")[0] || "User",
-      goals: [],
-      anti_goals: [],
-      accessibility_needs: [],
-      other_banks: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      financialGoals: [],
-      preferredChannels: ["app-push"],
-      financialConcerns: [],
-      currentBankingProducts: [],
-    }
+    // If no persona found, return null instead of creating a basic one
+    console.log("No persona found for user:", userId)
+    return null
   } catch (error) {
     console.error("Failed to fetch user profile:", error)
     return null
@@ -165,7 +151,9 @@ function convertBackendTransaction(backendTx: BackendFinancialTransaction) {
 // Get user's conversation history from backend
 export async function getUserConversationHistory(personaId: string, limit = 10): Promise<any[]> {
   try {
+    console.log("🔍 Fetching conversation history for persona:", personaId)
     const conversations = await apiClient.getConversations(personaId)
+    console.log("📝 Found conversations:", conversations.length)
 
     return conversations
       .sort(
@@ -184,10 +172,13 @@ export async function getUserConversationHistory(personaId: string, limit = 10):
         related_transaction_id: msg.related_transaction_id,
       }))
   } catch (error) {
-    console.error("Failed to fetch conversation history:", error)
+    console.error("❌ Failed to fetch conversation history:", error)
     return []
   }
 }
+
+// Conversation sequence counter to avoid conflicts
+let conversationSequenceCounter = 1
 
 // Save conversation message to backend
 export async function saveConversationMessage(
@@ -198,11 +189,21 @@ export async function saveConversationMessage(
   intent = "general",
   channel = "web",
   relatedTransactionId?: string,
-) {
+): Promise<boolean> {
   try {
-    const messageSeq = Date.now() // Simple sequence number
+    console.log("💾 Saving conversation message:", {
+      conversationId,
+      personaId,
+      role,
+      textLength: text.length,
+      intent,
+      channel,
+    })
 
-    await apiClient.createConversationMessage({
+    // Use a proper sequence number that increments
+    const messageSeq = conversationSequenceCounter++
+
+    const messageData = {
       conversation_id: conversationId,
       message_seq: messageSeq,
       persona_id: personaId,
@@ -210,11 +211,31 @@ export async function saveConversationMessage(
       intent,
       channel,
       language: "en",
-      text,
-      related_transaction_id: relatedTransactionId,
+      text: text.substring(0, 5000), // Truncate very long messages
+      related_transaction_id: relatedTransactionId || null,
+    }
+
+    console.log("📤 Sending message data:", messageData)
+
+    const result = await apiClient.createConversationMessage(messageData)
+    console.log("✅ Message saved successfully:", result.id)
+    return true
+  } catch (error: any) {
+    console.error("❌ Failed to save conversation message:", error)
+    console.error("Error details:", {
+      message: error.message,
+      status: error.status,
+      conversationId,
+      personaId,
+      role,
     })
-  } catch (error) {
-    console.error("Failed to save conversation message:", error)
+
+    // Show user-visible error for debugging
+    if (typeof window !== "undefined") {
+      console.warn("🚨 Conversation not saved to backend:", error.message)
+    }
+
+    return false
   }
 }
 
@@ -280,4 +301,100 @@ export function createUserContext(
   }
 
   return context
+}
+
+// Save user profile to backend
+export async function saveUserProfile(userProfile: UserProfile): Promise<void> {
+  try {
+    // Convert user profile to backend persona format
+    const personaData = {
+      id: userProfile.id,
+      email: userProfile.email,
+      name: userProfile.name,
+      age: userProfile.age || 0,
+      gender: userProfile.gender || "",
+      pronouns: userProfile.pronouns || "",
+      city: userProfile.city || "",
+      region: userProfile.region || "",
+      occupation: userProfile.occupation || "",
+      monthly_income: userProfile.monthly_income || 0,
+      salary_day_1: userProfile.salary_day_1 || 0,
+      salary_day_2: userProfile.salary_day_2 || 0,
+      primary_bank: userProfile.primary_bank || "",
+      other_banks: userProfile.other_banks || [],
+      has_credit_card: userProfile.has_credit_card || false,
+      e_wallets: userProfile.e_wallets || "",
+      preferred_channel: userProfile.preferred_channel || "app push",
+      language_style: userProfile.language_style || "friendly",
+      goals: userProfile.goals || [],
+      anti_goals: userProfile.anti_goals || [],
+      risk_tolerance: userProfile.risk_tolerance || "moderate",
+      savings_goal: userProfile.savings_goal || 0,
+      consent_personalization: userProfile.consent_personalization || "yes",
+      accessibility_needs: userProfile.accessibility_needs || [],
+      churn_risk: userProfile.churn_risk || "low",
+    }
+
+    // Check if persona exists, if so update, otherwise create
+    const existingPersonas = await apiClient.getPersonas()
+    const existingPersona = existingPersonas.find(
+      (p: BackendPersona) => p.id === userProfile.id || p.email === userProfile.email,
+    )
+
+    if (existingPersona) {
+      await apiClient.updatePersona(existingPersona.id, personaData)
+      console.log("User profile updated in backend")
+    } else {
+      await apiClient.createPersona(personaData)
+      console.log("User profile created in backend")
+    }
+  } catch (error) {
+    console.error("Failed to save user profile:", error)
+    throw error
+  }
+}
+
+// Debug function to test conversation saving
+export async function debugConversationSaving(personaId: string) {
+  console.log("🧪 Testing conversation saving...")
+
+  const testConversationId = `debug-conv-${Date.now()}`
+
+  try {
+    // Test saving a user message
+    const userSaved = await saveConversationMessage(
+      testConversationId,
+      personaId,
+      "user",
+      "This is a test user message",
+      "test",
+      "web",
+    )
+
+    // Test saving an assistant message
+    const assistantSaved = await saveConversationMessage(
+      testConversationId,
+      personaId,
+      "assistant",
+      "This is a test assistant response",
+      "test_response",
+      "web",
+    )
+
+    console.log("Test results:", { userSaved, assistantSaved })
+
+    // Try to fetch the saved messages
+    const history = await getUserConversationHistory(personaId, 5)
+    console.log("Fetched history:", history)
+
+    return { success: true, userSaved, assistantSaved, historyCount: history.length }
+  } catch (error) {
+  if (error instanceof Error) {
+    console.error("Debug test failed:", error)
+    return { success: false, error: error.message }
+  }
+  console.error("Debug test failed:", error)
+  return { success: false, error: String(error) }
+}
+
 }
