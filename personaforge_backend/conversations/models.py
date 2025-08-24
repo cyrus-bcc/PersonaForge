@@ -1,4 +1,5 @@
 from django.db import models
+from persona.models import Persona
 
 class ConversationMessage(models.Model):
     ROLE_CHOICES = [
@@ -8,7 +9,7 @@ class ConversationMessage(models.Model):
 
     conversation_id = models.CharField(max_length=100)
     message_seq = models.PositiveIntegerField()
-    persona_id = models.CharField(max_length=50)
+    persona_id = models.ForeignKey(Persona, on_delete=models.CASCADE)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     timestamp = models.DateTimeField(auto_now_add=True)  # auto timestamp if missing
     intent = models.CharField(max_length=100)
