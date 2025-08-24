@@ -208,21 +208,9 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
           >
             <div className="flex items-center gap-2">
               <Crown className="h-4 w-4 text-white" />
-              <p className="text-sm font-medium text-white">PersonaForge AI - Personalized Banking Assistant</p>
+              <p className="text-sm font-medium text-white">PersonaForge - Personalized Banking Assistant</p>
             </div>
             <div className="flex items-center gap-2">
-              {/* User Profile Badge */}
-              {userProfile && (
-                <Badge variant="outline" className="gap-1 border-white/20 text-white">
-                  <User className="h-3 w-3" />
-                  <span className="text-xs">{userProfile.name}</span>
-                </Badge>
-              )}
-              {/* Backend Connection Badge */}
-              <Badge variant="outline" className="gap-1 border-white/20 text-white">
-                <Database className="h-3 w-3" />
-                <span className="text-xs">{backendConnected ? "🟢 Backend" : "🔴 Offline"}</span>
-              </Badge>
               {/* Conversation Save Status */}
               {conversationSaveErrors.length > 0 && (
                 <Badge variant="outline" className="gap-1 border-yellow-300 text-yellow-100">
@@ -258,19 +246,17 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
 
           <div ref={listRef} className="min-h-0 overflow-y-auto p-4 space-y-3">
             {/* Enhanced Status Alerts */}
+            <div className="flex flex-wrap gap-3">
             {backendConnected && userProfile ? (
-              <Alert variant="default" className="border-green-200 bg-green-50">
+              <Alert variant="default" className="border-green-200 bg-green-50 flex-1 min-w-[250px]">
                 <Database className="h-4 w-4 text-green-600" />
                 <AlertTitle className="text-green-800">Complete Profile Loaded</AlertTitle>
                 <AlertDescription className="text-xs text-green-700">
-                  {userProfile.name} ({userProfile.age}y, {userProfile.occupation}) • Income: ₱
-                  {userProfile.monthly_income?.toLocaleString() || "N/A"} • Bank: {userProfile.primary_bank || "N/A"} •
-                  Risk: {userProfile.risk_tolerance || "N/A"} • Financial data: {financialSummary ? "✓" : "✗"} •
-                  History: {conversationHistory.length} msgs • Conv ID: {conversationId.slice(-8)}
+                  {userProfile.name} ({userProfile.age} yrs. old, {userProfile.occupation})
                 </AlertDescription>
               </Alert>
             ) : (
-              <Alert variant="default" className="border-orange-200 bg-orange-50">
+              <Alert variant="default" className="border-orange-200 bg-orange-50 flex-1 min-w-[250px]">
                 <Database className="h-4 w-4 text-orange-600" />
                 <AlertTitle className="text-orange-800">Limited Profile</AlertTitle>
                 <AlertDescription className="text-xs text-orange-700">
@@ -281,10 +267,10 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
 
             {/* Conversation Save Errors */}
             {conversationSaveErrors.length > 0 && (
-              <Alert variant="destructive">
+              <Alert variant="destructive" className="flex-1 min-w-[250px]">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Conversation Save Issues</AlertTitle>
-                <AlertDescription className="text-xs">
+                <AlertDescription className="text-xs flex items-center">
                   Some messages may not be saved to backend. Check console for details.
                   <Button
                     variant="ghost"
@@ -299,16 +285,16 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
             )}
 
             {modelInfo && (
-              <Alert variant="default" className="border-primary/20">
+              <Alert variant="default" className="border-primary/20 flex-1 min-w-[250px]">
                 <Crown className="h-4 w-4 text-primary" />
                 <AlertTitle className="text-primary">PersonaForge Banking AI Active</AlertTitle>
                 <AlertDescription className="text-xs">
-                  Specialized in banking & finance • {modelInfo.provider.toUpperCase()} • {modelInfo.model}
-                  {modelInfo.config && ` • ${modelInfo.config}`}
-                  {userProfile && ` • Personalized for ${userProfile.name}`}
+                  Powered by {modelInfo.provider} {modelInfo.model}
+                  {modelInfo.config ? ` (${modelInfo.config})` : ""}
                 </AlertDescription>
               </Alert>
             )}
+          </div>
 
             {riskInfo && (
               <Alert variant="destructive" role="alert">
@@ -357,7 +343,7 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
               <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 {backendConnected && userProfile
-                  ? `Analyzing your personalized data (${userProfile.name}, ${userProfile.occupation}, ₱${userProfile.monthly_income?.toLocaleString() || "N/A"} income)...`
+                  ? `Analyzing your personalized data...`
                   : "Generating response..."}
               </div>
             )}
@@ -433,7 +419,7 @@ async function getAssistantReply(args: {
   } catch {}
 
   return {
-    text: `I'm PersonaForge AI, specialized in banking and financial services. I can help with:
+    text: `I'm PersonaForge, specialized in banking and financial services. I can help with:
 
 • Banking services and accounts
 • Loans and credit management  
