@@ -10,7 +10,6 @@ class CustomUserSerializer(serializers.ModelSerializer):
             "email",
             "is_active",
             "is_staff",
-            "role",
             "password",
             "created_at",
         )
@@ -19,14 +18,9 @@ class CustomUserSerializer(serializers.ModelSerializer):
         }
         read_only_fields = ["id"]
     def create(self, validated_data):
-        role = validated_data.get("role")
-        if not role:
-            raise serializers.ValidationError({"role": "This field is required."})
-
         user = CustomUser.objects.create_user(
             email=validated_data["email"],
             password=validated_data["password"],
-            role=role,
         )
 
         # i love you, baby
