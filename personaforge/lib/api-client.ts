@@ -25,16 +25,21 @@ class ApiClient {
     if (typeof window !== "undefined") {
       localStorage.removeItem("access_token")
       localStorage.removeItem("refresh_token")
+      localStorage.removeItem("pf_auth")
     }
   }
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseURL}${endpoint}`
+    
+    // Add this line to debug the URL
+    console.log("Requesting URL:", url);
 
     const headers: HeadersInit = {
       "Content-Type": "application/json",
       ...options.headers,
     }
+
     if (this.token) {
       (headers as any).Authorization = `Bearer ${this.token}`
     }
@@ -43,6 +48,7 @@ class ApiClient {
       ...options,
       headers,
     })
+
     if (response.status === 401) {
       // Token expired, try to refresh
       const refreshed = await this.refreshToken()
@@ -124,6 +130,7 @@ class ApiClient {
 
     if (typeof window !== "undefined") {
       localStorage.setItem("refresh_token", data.refresh)
+      localStorage.setItem("pf_auth", JSON.stringify({ user: { email } }))
     }
 
     return data
@@ -144,11 +151,39 @@ class ApiClient {
     this.clearToken()
   }
 
-  // User endpoints
+  // User/Profile endpoints (same as persona)
   async getCurrentUser() {
-    // This endpoint might not exist in your backend
-    // We'll handle user data in the login response instead
-    return null
+    // Get current user's persona data
+    const auth = this.getAuthState()
+    if (!auth?.user?.email) return null
+
+    try {
+      const personas = await this.getPersonas()
+      return personas.find((p: any) => p.email === auth.user.email) || null
+    } catch (error) {
+      console.error("Failed to get current user persona:", error)
+      return null
+    }
+  }
+
+  private getAuthState() {
+    if (typeof window === "undefined") return null
+    try {
+      const raw = localStorage.getItem("pf_auth")
+      return raw ? JSON.parse(raw) : null
+    } catch {
+      return null
+    }
+  }
+
+  async getUserProfile(email: string) {
+    try {
+      const personas = await this.getPersonas()
+      return personas.find((p: any) => p.email === email) || null
+    } catch (error) {
+      console.error("Failed to get user profile:", error)
+      return null
+    }
   }
 
   // Persona endpoints
