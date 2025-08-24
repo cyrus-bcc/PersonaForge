@@ -220,7 +220,7 @@ export default function ProfilePage() {
           <div className="mb-6 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Crown className="h-5 w-5 text-primary" />
-              <h1 className="text-xl font-semibold">Complete Profile</h1>
+              <h1 className="text-xl font-semibold">User Profile</h1>
             </div>
           </div>
 
@@ -727,8 +727,8 @@ export default function ProfilePage() {
                 </Card>
 
                 <div className="flex justify-end pb-8">
-                  <Button type="submit" disabled={loading} className="gap-2" style={{ backgroundColor: "#B91C1C" }}>
-                    <Save className="h-4 w-4" />
+                  <Button type="submit" disabled={loading} className="gap-2 text-white" style={{ backgroundColor: "#B91C1C" }}>
+                    <Save className="h-4 w-4 " />
                     {loading ? "Saving..." : "Save Profile"}
                   </Button>
                 </div>
