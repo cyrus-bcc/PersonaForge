@@ -209,21 +209,6 @@ export default function LoginPage() {
               </Alert>
             )}
 
-            {/* Demo Info Card with red styling */}
-            <Card className="mt-6 border-2" style={{ borderColor: "#B91C1C", backgroundColor: "#FEF2F2" }}>
-              <CardContent className="p-4">
-                <div className="text-center">
-                  <h3 className="font-semibold text-red-700 mb-2">Backend Integration</h3>
-                  <div className="text-sm text-gray-700 space-y-1">
-                    <p>• Connected to Django backend</p>
-                    <p>• Real user authentication</p>
-                    <p>• Integrated persona & transaction data</p>
-                    <p>• Contact admin for credentials</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
             {/* Features Preview with red styling */}
             <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
               <div
@@ -247,12 +232,6 @@ export default function LoginPage() {
             </div>
           </CardContent>
         </Card>
-
-        {/* Footer */}
-        <div className="text-center mt-6 text-gray-600 text-sm">
-          <p>Connected to Django Backend</p>
-          <p className="mt-1">Real-time persona & transaction integration</p>
-        </div>
       </div>
     </div>
   )
