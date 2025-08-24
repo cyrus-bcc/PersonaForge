@@ -248,10 +248,10 @@ export default function ChatUI({ className = "h-full min-h-0" }: { className?: s
             {/* Enhanced Status Alerts */}
             <div className="flex flex-wrap gap-3">
             {backendConnected && userProfile ? (
-              <Alert variant="default" className="border-green-200 bg-green-50 flex-1 min-w-[250px]">
-                <Database className="h-4 w-4 text-green-600" />
-                <AlertTitle className="text-green-800">Complete Profile Loaded</AlertTitle>
-                <AlertDescription className="text-xs text-green-700">
+              <Alert variant="default" className="border-red-200 bg-red-50 flex-1 min-w-[250px]">
+                <Database className="h-4 w-4 text-red-600" />
+                <AlertTitle className="text-red-800">Complete Profile Loaded</AlertTitle>
+                <AlertDescription className="text-xs text-red-700">
                   {userProfile.name} ({userProfile.age} yrs. old, {userProfile.occupation})
                 </AlertDescription>
               </Alert>
