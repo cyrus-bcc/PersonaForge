@@ -303,12 +303,22 @@ export function createUserContext(
   return context
 }
 
-// Save user profile to backend
+// Save user profile to backend - COMPLETELY REWRITTEN VERSION
 export async function saveUserProfile(userProfile: UserProfile): Promise<void> {
   try {
+    console.log("💾 Starting to save user profile:", {
+      id: userProfile.id,
+      email: userProfile.email,
+      name: userProfile.name,
+    })
+
+    // Generate a proper persona ID
+    const personaId = `persona-${userProfile.email.replace("@", "-").replace(/\./g, "-")}-${Date.now()}`
+    console.log("🔧 Generated persona ID:", personaId)
+
     // Convert user profile to backend persona format
     const personaData = {
-      id: userProfile.id,
+      id: personaId,
       email: userProfile.email,
       name: userProfile.name,
       age: userProfile.age || 0,
@@ -335,21 +345,81 @@ export async function saveUserProfile(userProfile: UserProfile): Promise<void> {
       churn_risk: userProfile.churn_risk || "low",
     }
 
-    // Check if persona exists, if so update, otherwise create
-    const existingPersonas = await apiClient.getPersonas()
+    console.log("📤 Persona data to save:", personaData)
+
+    // STEP 1: Check if any persona exists for this email
+    console.log("🔍 Checking for existing personas...")
+    let existingPersonas: BackendPersona[] = []
+
+    try {
+      existingPersonas = await apiClient.getPersonas()
+      console.log("📋 Found", existingPersonas.length, "total personas")
+    } catch (fetchError: any) {
+      console.error("❌ Failed to fetch existing personas:", fetchError)
+      // Continue with creation if we can't fetch existing ones
+    }
+
     const existingPersona = existingPersonas.find(
-      (p: BackendPersona) => p.id === userProfile.id || p.email === userProfile.email,
+      (p: BackendPersona) => p.email.toLowerCase() === userProfile.email.toLowerCase(),
     )
 
     if (existingPersona) {
-      await apiClient.updatePersona(existingPersona.id, personaData)
-      console.log("User profile updated in backend")
+      console.log("🔄 Found existing persona for email:", existingPersona.email, "with ID:", existingPersona.id)
+
+      // STEP 2A: Update existing persona
+      try {
+        console.log("📝 Updating existing persona...")
+        const updatedPersona = await apiClient.updatePersona(existingPersona.id, personaData)
+        console.log("✅ Successfully updated existing persona:", updatedPersona.id)
+      } catch (updateError: any) {
+        console.error("❌ Failed to update existing persona:", updateError)
+
+        // If update fails, try to delete and recreate
+        console.log("🔄 Attempting to delete and recreate persona...")
+        try {
+          await apiClient.deletePersona(existingPersona.id)
+          console.log("🗑️ Deleted old persona, creating new one...")
+
+          const newPersona = await apiClient.createPersona(personaData)
+          console.log("✅ Successfully created new persona after deletion:", newPersona.id)
+        } catch (recreateError: any) {
+          console.error("❌ Failed to recreate persona:", recreateError)
+          throw new Error(`Failed to update or recreate persona: ${recreateError.message}`)
+        }
+      }
     } else {
-      await apiClient.createPersona(personaData)
-      console.log("User profile created in backend")
+      console.log("🆕 No existing persona found, creating new one...")
+
+      // STEP 2B: Create new persona
+      try {
+        const newPersona = await apiClient.createPersona(personaData)
+        console.log("✅ Successfully created new persona:", newPersona.id)
+      } catch (createError: any) {
+        console.error("❌ Failed to create new persona:", createError)
+
+        // If creation fails due to ID conflict, try with a different ID
+        if (createError.message.includes("already exists") || createError.message.includes("duplicate")) {
+          const retryPersonaId = `persona-${userProfile.email.replace("@", "-").replace(/\./g, "-")}-${Date.now()}-retry`
+          console.log("🔄 Retrying with new ID:", retryPersonaId)
+
+          const retryPersonaData = { ...personaData, id: retryPersonaId }
+          const retryPersona = await apiClient.createPersona(retryPersonaData)
+          console.log("✅ Successfully created persona with retry ID:", retryPersona.id)
+        } else {
+          throw new Error(`Failed to create persona: ${createError.message}`)
+        }
+      }
     }
-  } catch (error) {
-    console.error("Failed to save user profile:", error)
+
+    console.log("🎉 Profile save operation completed successfully!")
+  } catch (error: any) {
+    console.error("❌ Failed to save user profile:", error)
+    console.error("Error details:", {
+      message: error.message,
+      userEmail: userProfile.email,
+      userId: userProfile.id,
+      stack: error.stack,
+    })
     throw error
   }
 }
@@ -389,12 +459,40 @@ export async function debugConversationSaving(personaId: string) {
 
     return { success: true, userSaved, assistantSaved, historyCount: history.length }
   } catch (error) {
-  if (error instanceof Error) {
     console.error("Debug test failed:", error)
-    return { success: false, error: error.message }
+    return { success: false, error: String(error) }
   }
-  console.error("Debug test failed:", error)
-  return { success: false, error: String(error) }
 }
 
+// Debug function to test profile saving
+export async function debugProfileSaving(userProfile: UserProfile) {
+  console.log("🧪 Testing profile saving...")
+
+  try {
+    await saveUserProfile(userProfile)
+    console.log("✅ Profile saving test passed!")
+    return { success: true }
+  } catch (error: any) {
+    console.error("❌ Profile saving test failed:", error)
+    return { success: false, error: error.message }
+  }
+}
+
+// Debug function to list all personas
+export async function debugListPersonas() {
+  console.log("🧪 Listing all personas...")
+
+  try {
+    const personas = await apiClient.getPersonas()
+    console.log("📋 Found personas:", personas.length)
+
+    personas.forEach((persona: BackendPersona, index: number) => {
+      console.log(`${index + 1}. ID: ${persona.id}, Email: ${persona.email}, Name: ${persona.name}`)
+    })
+
+    return { success: true, count: personas.length, personas }
+  } catch (error: any) {
+    console.error("❌ Failed to list personas:", error)
+    return { success: false, error: error.message }
+  }
 }

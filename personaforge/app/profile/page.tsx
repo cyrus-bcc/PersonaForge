@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Save, Eye, Crown } from "lucide-react"
+import { Save, Eye, Crown, AlertTriangle } from "lucide-react"
 import { getAuthState, saveUser, setAuthState } from "@/lib/auth"
 import type { UserProfile } from "@/types/user"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -82,6 +82,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const auth = getAuthState()
@@ -180,19 +181,28 @@ export default function ProfilePage() {
         };
       }
 
-      // The rest of your code remains unchanged, as `updatedProfile` is now always a valid UserProfile object
-      try {
-        await saveUser(updatedProfile);
-        setAuthState({ isAuthenticated: true, user: updatedProfile });
-        setProfile(updatedProfile);
-        setSuccess("Profile saved successfully!");
-        setTimeout(() => setSuccess(null), 3000);
-      } catch (err: any) {
-        console.error("Failed to save profile:", err);
-      } finally {
-        setLoading(false);
-      }
+    console.log("💾 Attempting to save profile:", {
+      originalId: updatedProfile.id,
+      newId: updatedProfile.id,
+      email: updatedProfile.email,
+      name: updatedProfile.name,
+    })
+
+    try {
+      await saveUser(updatedProfile)
+      setAuthState({ isAuthenticated: true, user: updatedProfile })
+      setProfile(updatedProfile)
+      setSuccess("Profile saved successfully to backend!")
+
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (err: any) {
+      console.error("Failed to save profile:", err)
+      setError(`Failed to save profile: ${err.message || "Unknown error"}`)
+      setTimeout(() => setError(null), 5000)
+    } finally {
+      setLoading(false)
     }
+  }
 
   function handleArrayChange(field: keyof UserProfile, value: string, checked: boolean) {
     if (!profile) return
@@ -217,6 +227,13 @@ export default function ProfilePage() {
           {success && (
             <Alert className="mb-6 border-green-200 bg-green-50">
               <AlertDescription className="text-green-800">{success}</AlertDescription>
+            </Alert>
+          )}
+
+          {error && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
 
@@ -245,6 +262,9 @@ export default function ProfilePage() {
                         </p>
                         <p>
                           <span className="font-medium">Email:</span> {profile.email}
+                        </p>
+                        <p>
+                          <span className="font-medium">Profile ID:</span> {profile.id}
                         </p>
                         <p>
                           <span className="font-medium">Age:</span> {profile.age || "Not specified"}
