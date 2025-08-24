@@ -97,49 +97,106 @@ export default function ProfilePage() {
   }
 
   async function handleSave(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
+      e.preventDefault();
+      setLoading(true);
 
-    const formData = new FormData(e.currentTarget)
-    const updatedProfile: UserProfile = {
-      ...profile,
-      name: formData.get("name") as string,
-      age: Number.parseInt(formData.get("age") as string) || undefined,
-      gender: (formData.get("gender") as string) || undefined,
-      pronouns: (formData.get("pronouns") as string) || undefined,
-      city: (formData.get("city") as string) || undefined,
-      region: (formData.get("region") as string) || undefined,
-      occupation: (formData.get("occupation") as string) || undefined,
-      monthly_income: Number.parseInt(formData.get("monthly_income") as string) || undefined,
-      salary_day_1: Number.parseInt(formData.get("salary_day_1") as string) || undefined,
-      salary_day_2: Number.parseInt(formData.get("salary_day_2") as string) || undefined,
-      primary_bank: (formData.get("primary_bank") as string) || undefined,
-      has_credit_card: formData.get("has_credit_card") === "true",
-      e_wallets: (formData.get("e_wallets") as string) || undefined,
-      preferred_channel: (formData.get("preferred_channel") as string) || undefined,
-      language_style: (formData.get("language_style") as string) || undefined,
-      risk_tolerance: (formData.get("risk_tolerance") as string) || undefined,
-      savings_goal: Number.parseInt(formData.get("savings_goal") as string) || undefined,
-      consent_personalization: (formData.get("consent_personalization") as string) || undefined,
-      churn_risk: (formData.get("churn_risk") as string) || undefined,
-      updatedAt: new Date().toISOString(),
+      const formData = new FormData(e.currentTarget);
+
+      // Use a type guard to handle the null case for 'profile'
+      let updatedProfile: UserProfile;
+
+      if (!profile) {
+      // If 'profile' is null, create a new UserProfile object from scratch
+        const newProfileId = `user-${Date.now()}`;
+        updatedProfile = {
+          id: newProfileId,
+          name: (formData.get("name") as string) || "",
+          age: Number.parseInt(formData.get("age") as string) || undefined,
+          gender: (formData.get("gender") as string) || undefined,
+          pronouns: (formData.get("pronouns") as string) || undefined,
+          city: (formData.get("city") as string) || undefined,
+          region: (formData.get("region") as string) || undefined,
+          occupation: (formData.get("occupation") as string) || undefined,
+          monthly_income: Number.parseInt(formData.get("monthly_income") as string) || undefined,
+          salary_day_1: Number.parseInt(formData.get("salary_day_1") as string) || undefined,
+          salary_day_2: Number.parseInt(formData.get("salary_day_2") as string) || undefined,
+          primary_bank: (formData.get("primary_bank") as string) || undefined,
+          has_credit_card: formData.get("has_credit_card") === "true",
+          e_wallets: (formData.get("e_wallets") as string) || undefined,
+          preferred_channel: (formData.get("preferred_channel") as string) || undefined,
+          language_style: (formData.get("language_style") as string) || undefined,
+          risk_tolerance: (formData.get("risk_tolerance") as string) || undefined,
+          savings_goal: Number.parseInt(formData.get("savings_goal") as string) || undefined,
+          consent_personalization: (formData.get("consent_personalization") as string) || undefined,
+          churn_risk: (formData.get("churn_risk") as string) || undefined,
+          updatedAt: new Date().toISOString(),
+          // Provide default empty arrays
+          goals: [],
+          anti_goals: [],
+          accessibility_needs: [],
+          other_banks: [],
+          financialGoals: [],
+          preferredChannels: ["app push"],
+          financialConcerns: [],
+          currentBankingProducts: [],
+          // Add the missing properties
+          email: (formData.get("email") as string) || "",
+          createdAt: new Date().toISOString(),
+        };
+      } else {
+        // If 'profile' exists, update it with new values from the form
+        const profileId = profile.id ? profile.id : `user-${Date.now()}`;
+        updatedProfile = {
+          ...profile,
+          id: profileId,
+          name: (formData.get("name") as string) || "",
+          age: Number.parseInt(formData.get("age") as string) || undefined,
+          gender: (formData.get("gender") as string) || undefined,
+          pronouns: (formData.get("pronouns") as string) || undefined,
+          city: (formData.get("city") as string) || undefined,
+          region: (formData.get("region") as string) || undefined,
+          occupation: (formData.get("occupation") as string) || undefined,
+          monthly_income: Number.parseInt(formData.get("monthly_income") as string) || undefined,
+          salary_day_1: Number.parseInt(formData.get("salary_day_1") as string) || undefined,
+          salary_day_2: Number.parseInt(formData.get("salary_day_2") as string) || undefined,
+          primary_bank: (formData.get("primary_bank") as string) || undefined,
+          has_credit_card: formData.get("has_credit_card") === "true",
+          e_wallets: (formData.get("e_wallets") as string) || undefined,
+          preferred_channel: (formData.get("preferred_channel") as string) || undefined,
+          language_style: (formData.get("language_style") as string) || undefined,
+          risk_tolerance: (formData.get("risk_tolerance") as string) || undefined,
+          savings_goal: Number.parseInt(formData.get("savings_goal") as string) || undefined,
+          consent_personalization: (formData.get("consent_personalization") as string) || undefined,
+          churn_risk: (formData.get("churn_risk") as string) || undefined,
+          updatedAt: new Date().toISOString(),
+          goals: profile.goals || [],
+          anti_goals: profile.anti_goals || [],
+          accessibility_needs: profile.accessibility_needs || [],
+          other_banks: profile.other_banks || [],
+          financialGoals: profile.goals || [],
+          preferredChannels: profile.preferred_channel ? [profile.preferred_channel] : ["app push"],
+          financialConcerns: profile.anti_goals || [],
+          currentBankingProducts: profile.primary_bank ? [profile.primary_bank, ...(profile.other_banks || [])] : [],
+        };
+      }
+
+      // The rest of your code remains unchanged, as `updatedProfile` is now always a valid UserProfile object
+      try {
+        await saveUser(updatedProfile);
+        setAuthState({ isAuthenticated: true, user: updatedProfile });
+        setProfile(updatedProfile);
+        setSuccess("Profile saved successfully!");
+        setTimeout(() => setSuccess(null), 3000);
+      } catch (err: any) {
+        console.error("Failed to save profile:", err);
+      } finally {
+        setLoading(false);
+      }
     }
-
-    try {
-      await saveUser(updatedProfile)
-      setAuthState({ isAuthenticated: true, user: updatedProfile })
-      setProfile(updatedProfile)
-      setSuccess("Profile saved successfully!")
-
-      setTimeout(() => setSuccess(null), 3000)
-    } catch (err: any) {
-      console.error("Failed to save profile:", err)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   function handleArrayChange(field: keyof UserProfile, value: string, checked: boolean) {
+    if (!profile) return
+
     const currentArray = (profile[field] as string[]) || []
     const newArray = checked ? [...currentArray, value] : currentArray.filter((item) => item !== value)
 
@@ -268,7 +325,7 @@ export default function ProfilePage() {
                     <div>
                       <h3 className="font-medium mb-2 text-primary">Financial Goals</h3>
                       <div className="flex flex-wrap gap-2">
-                        {profile.goals?.length > 0 ? (
+                        {profile.goals && profile.goals.length > 0 ? (
                           profile.goals.map((goal) => (
                             <span key={goal} className="px-2 py-1 bg-green-100 text-green-800 rounded-md text-xs">
                               {goal}
@@ -283,7 +340,7 @@ export default function ProfilePage() {
                     <div>
                       <h3 className="font-medium mb-2 text-primary">Things to Avoid</h3>
                       <div className="flex flex-wrap gap-2">
-                        {profile.anti_goals?.length > 0 ? (
+                        {profile.anti_goals && profile.anti_goals.length > 0 ? (
                           profile.anti_goals.map((antiGoal) => (
                             <span key={antiGoal} className="px-2 py-1 bg-red-100 text-red-800 rounded-md text-xs">
                               {antiGoal}
@@ -298,7 +355,7 @@ export default function ProfilePage() {
                     <div>
                       <h3 className="font-medium mb-2 text-primary">Accessibility Needs</h3>
                       <div className="flex flex-wrap gap-2">
-                        {profile.accessibility_needs?.length > 0 ? (
+                        {profile.accessibility_needs && profile.accessibility_needs.length > 0 ? (
                           profile.accessibility_needs.map((need) => (
                             <span key={need} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs">
                               {need}
@@ -496,7 +553,7 @@ export default function ProfilePage() {
                           <div key={bank} className="flex items-center space-x-2">
                             <Checkbox
                               id={`bank-${bank}`}
-                              checked={profile.other_banks?.includes(bank)}
+                              checked={profile.other_banks?.includes(bank) || false}
                               onCheckedChange={(checked) => handleArrayChange("other_banks", bank, checked as boolean)}
                             />
                             <Label htmlFor={`bank-${bank}`} className="text-sm">
@@ -594,7 +651,7 @@ export default function ProfilePage() {
                           <div key={goal} className="flex items-center space-x-2">
                             <Checkbox
                               id={`goal-${goal}`}
-                              checked={profile.goals?.includes(goal)}
+                              checked={profile.goals?.includes(goal) || false}
                               onCheckedChange={(checked) => handleArrayChange("goals", goal, checked as boolean)}
                             />
                             <Label htmlFor={`goal-${goal}`} className="text-sm">
@@ -613,7 +670,7 @@ export default function ProfilePage() {
                           <div key={antiGoal} className="flex items-center space-x-2">
                             <Checkbox
                               id={`anti-goal-${antiGoal}`}
-                              checked={profile.anti_goals?.includes(antiGoal)}
+                              checked={profile.anti_goals?.includes(antiGoal) || false}
                               onCheckedChange={(checked) =>
                                 handleArrayChange("anti_goals", antiGoal, checked as boolean)
                               }
@@ -634,7 +691,7 @@ export default function ProfilePage() {
                           <div key={need} className="flex items-center space-x-2">
                             <Checkbox
                               id={`accessibility-${need}`}
-                              checked={profile.accessibility_needs?.includes(need)}
+                              checked={profile.accessibility_needs?.includes(need) || false}
                               onCheckedChange={(checked) =>
                                 handleArrayChange("accessibility_needs", need, checked as boolean)
                               }

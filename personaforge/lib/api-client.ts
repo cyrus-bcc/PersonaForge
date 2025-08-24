@@ -35,7 +35,6 @@ class ApiClient {
       "Content-Type": "application/json",
       ...options.headers,
     }
-
     if (this.token) {
       (headers as any).Authorization = `Bearer ${this.token}`
     }
@@ -44,7 +43,6 @@ class ApiClient {
       ...options,
       headers,
     })
-
     if (response.status === 401) {
       // Token expired, try to refresh
       const refreshed = await this.refreshToken()
@@ -70,7 +68,9 @@ class ApiClient {
     }
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const errorText = await response.text()
+      console.error(`API Error ${response.status}:`, errorText)
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`)
     }
 
     return response.json()
@@ -174,10 +174,20 @@ class ApiClient {
     })
   }
 
+  async deletePersona(id: string) {
+    return this.request<any>(`/persona/${id}/`, {
+      method: "DELETE",
+    })
+  }
+
   // Financial transactions endpoints
   async getFinancialTransactions(personaId?: string) {
     const params = personaId ? `?persona_id=${personaId}` : ""
     return this.request<any[]>(`/financial-transactions/${params}`)
+  }
+
+  async getFinancialTransaction(id: string) {
+    return this.request<any>(`/financial-transactions/${id}/`)
   }
 
   async createFinancialTransaction(data: any) {
@@ -187,16 +197,46 @@ class ApiClient {
     })
   }
 
+  async updateFinancialTransaction(id: string, data: any) {
+    return this.request<any>(`/financial-transactions/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteFinancialTransaction(id: string) {
+    return this.request<any>(`/financial-transactions/${id}/`, {
+      method: "DELETE",
+    })
+  }
+
   // Conversation endpoints
   async getConversations(personaId?: string) {
     const params = personaId ? `?persona_id=${personaId}` : ""
     return this.request<any[]>(`/conversations/${params}`)
   }
 
+  async getConversation(id: string) {
+    return this.request<any>(`/conversations/${id}/`)
+  }
+
   async createConversationMessage(data: any) {
     return this.request<any>("/conversations/", {
       method: "POST",
       body: JSON.stringify(data),
+    })
+  }
+
+  async updateConversationMessage(id: string, data: any) {
+    return this.request<any>(`/conversations/${id}/`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteConversationMessage(id: string) {
+    return this.request<any>(`/conversations/${id}/`, {
+      method: "DELETE",
     })
   }
 }
