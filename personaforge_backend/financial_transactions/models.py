@@ -1,7 +1,8 @@
 from django.db import models
+from persona.models import Persona
 
 class FinancialTransaction(models.Model):
-    persona_id = models.CharField(max_length=50)
+    persona_id = models.ForeignKey(Persona, on_delete=models.CASCADE)
     transaction_id = models.CharField(max_length=100, unique=True)
     timestamp = models.DateTimeField()
     transaction_type = models.CharField(max_length=20, choices=[
