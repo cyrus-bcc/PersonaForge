@@ -15,17 +15,17 @@ export default function Markdown({ children, className = "" }: MarkdownProps) {
         remarkPlugins={[remarkGfm]}
         components={{
           // Headings
-          h1: (p) => <h1 className="mb-9 text-lg font-semibold" {...p} />,
-          h2: (p) => <h2 className="mb-6 text-base font-semibold" {...p} />,
-          h3: (p) => <h3 className="mb-3 text-sm font-semibold" {...p} />,
+          h1: (p) => <h1 className="mb-6 text-lg font-semibold" {...p} />,
+          h2: (p) => <h2 className="mb-4 text-base font-semibold" {...p} />,
+          h3: (p) => <h3 className="mb-2 text-sm font-semibold" {...p} />,
           // Text - much tighter spacing
           p: (p) => <p className="mb-6 leading-relaxed last:mb-0" {...p} />,
           strong: (p) => <strong className="font-semibold" {...p} />,
           em: (p) => <em className="italic" {...p} />,
           // Lists - let ReactMarkdown and default Tailwind styles handle this.
-          ul: (p) => <ul className="mb-5 list-disc pl-5" {...p} />,
-          ol: (p) => <ol className="mb-3 list-decimal pl-5" {...p} />,
-          li: (p) => <li className="mb-0 leading-relaxed" {...p} />,
+          ul: (p) => <ul className="list-disc pl-5" {...p} />,
+          ol: (p) => <ol className="mb-4 list-decimal pl-5" {...p} />,
+          li: (p) => <li className="mb-2 leading-relaxed" {...p} />,
           // Links
           a: (p) => (
             <a
