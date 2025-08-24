@@ -1,54 +1,80 @@
 "use client"
 
 import { apiClient } from "./api-client"
-import type { Channel } from "@/types/persona";
 import type { BackendPersona, BackendFinancialTransaction, BackendConversationMessage } from "@/types/backend"
-import type { Persona } from "@/types/persona"
+import type { UserProfile } from "@/types/user"
 import type { FinancialSummary } from "@/types/transaction"
 
-// Convert backend persona to frontend persona format
-export function convertBackendPersona(backendPersona: BackendPersona): Persona {
-  const preferredChannel = backendPersona.preferred_channel as Channel | undefined;
-  
+// Convert backend persona to frontend user profile format
+export function convertBackendPersonaToUserProfile(backendPersona: BackendPersona): UserProfile {
   return {
     id: backendPersona.id,
+    email: backendPersona.email,
     name: backendPersona.name,
-    summary: `${backendPersona.age}-year-old ${backendPersona.occupation} from ${backendPersona.city}, ${backendPersona.region}. ${backendPersona.goals.slice(0, 2).join(" and ")}.`,
-    status: "active",
-    riskAffinity: mapRiskTolerance(backendPersona.risk_tolerance),
-    tonePreference: backendPersona.language_style || "friendly",
-    contactChannels: preferredChannel ? [preferredChannel] : ["app push"],
+    age: backendPersona.age,
+    gender: backendPersona.gender,
+    pronouns: backendPersona.pronouns,
+    city: backendPersona.city,
+    region: backendPersona.region,
+    occupation: backendPersona.occupation,
+    monthly_income: backendPersona.monthly_income,
+    salary_day_1: backendPersona.salary_day_1,
+    salary_day_2: backendPersona.salary_day_2,
+    primary_bank: backendPersona.primary_bank,
+    other_banks: backendPersona.other_banks,
+    has_credit_card: backendPersona.has_credit_card,
+    e_wallets: backendPersona.e_wallets,
+    preferred_channel: backendPersona.preferred_channel,
+    language_style: backendPersona.language_style,
     goals: backendPersona.goals,
+    anti_goals: backendPersona.anti_goals,
+    risk_tolerance: backendPersona.risk_tolerance,
+    savings_goal: backendPersona.savings_goal,
+    consent_personalization: backendPersona.consent_personalization,
+    accessibility_needs: backendPersona.accessibility_needs,
+    churn_risk: backendPersona.churn_risk,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-  };
-}
 
-function mapRiskTolerance(riskTolerance: string): Persona["riskAffinity"] {
-  switch (riskTolerance.toLowerCase()) {
-    case "conservative":
-      return "conservative"
-    case "moderate":
-      return "moderate"
-    case "aggressive":
-      return "growth"
-    default:
-      return "balanced"
+    // Legacy fields for backward compatibility
+    financialGoals: backendPersona.goals,
+    preferredChannels: [backendPersona.preferred_channel],
+    financialConcerns: backendPersona.anti_goals,
+    currentBankingProducts: [backendPersona.primary_bank, ...backendPersona.other_banks],
   }
 }
 
-// Get user's persona data from backend
-export async function getUserPersona(userId: string): Promise<Persona | null> {
+// Get user's complete profile from backend
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   try {
     const personas = await apiClient.getPersonas()
-    const userPersona = personas.find((p: BackendPersona) => p.email === userId || p.id === userId)
+    const userPersona = personas.find(
+      (p: BackendPersona) => p.email === userId || p.id === userId || p.email.toLowerCase() === userId.toLowerCase(),
+    )
 
     if (userPersona) {
-      return convertBackendPersona(userPersona)
+      return convertBackendPersonaToUserProfile(userPersona)
     }
-    return null
+
+    // If no persona found, create a basic one for the user
+    console.log("No persona found for user, creating basic profile")
+    return {
+      id: `user-${userId}`,
+      email: userId,
+      name: userId.split("@")[0] || "User",
+      goals: [],
+      anti_goals: [],
+      accessibility_needs: [],
+      other_banks: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      financialGoals: [],
+      preferredChannels: ["app-push"],
+      financialConcerns: [],
+      currentBankingProducts: [],
+    }
   } catch (error) {
-    console.error("Failed to fetch user persona:", error)
+    console.error("Failed to fetch user profile:", error)
     return null
   }
 }
@@ -154,6 +180,8 @@ export async function getUserConversationHistory(personaId: string, limit = 10):
         timestamp: msg.timestamp,
         intent: msg.intent,
         channel: msg.channel,
+        style_tags: msg.style_tags,
+        related_transaction_id: msg.related_transaction_id,
       }))
   } catch (error) {
     console.error("Failed to fetch conversation history:", error)
@@ -169,12 +197,13 @@ export async function saveConversationMessage(
   text: string,
   intent = "general",
   channel = "web",
+  relatedTransactionId?: string,
 ) {
   try {
     const messageSeq = Date.now() // Simple sequence number
 
     await apiClient.createConversationMessage({
-      conversation_id: conversationId, // Add this line
+      conversation_id: conversationId,
       message_seq: messageSeq,
       persona_id: personaId,
       role,
@@ -182,9 +211,73 @@ export async function saveConversationMessage(
       channel,
       language: "en",
       text,
+      related_transaction_id: relatedTransactionId,
     })
   } catch (error) {
     console.error("Failed to save conversation message:", error)
   }
 }
 
+// Create comprehensive user context for AI
+export function createUserContext(
+  userProfile: UserProfile,
+  financialSummary: FinancialSummary | null,
+  conversationHistory: any[],
+) {
+  const context = {
+    // Personal Information
+    personal: {
+      name: userProfile.name,
+      age: userProfile.age,
+      gender: userProfile.gender,
+      pronouns: userProfile.pronouns,
+      location: `${userProfile.city}, ${userProfile.region}`,
+      occupation: userProfile.occupation,
+    },
+
+    // Financial Profile
+    financial: {
+      monthly_income: userProfile.monthly_income,
+      salary_days: [userProfile.salary_day_1, userProfile.salary_day_2].filter(Boolean),
+      primary_bank: userProfile.primary_bank,
+      other_banks: userProfile.other_banks,
+      has_credit_card: userProfile.has_credit_card,
+      e_wallets: userProfile.e_wallets,
+      savings_goal: userProfile.savings_goal,
+      risk_tolerance: userProfile.risk_tolerance,
+      churn_risk: userProfile.churn_risk,
+    },
+
+    // Goals and Preferences
+    preferences: {
+      goals: userProfile.goals,
+      anti_goals: userProfile.anti_goals,
+      preferred_channel: userProfile.preferred_channel,
+      language_style: userProfile.language_style,
+      accessibility_needs: userProfile.accessibility_needs,
+      consent_personalization: userProfile.consent_personalization,
+    },
+
+    // Financial Summary
+    financial_summary: financialSummary
+      ? {
+          total_income: financialSummary.totalIncome,
+          total_expenses: financialSummary.totalExpenses,
+          net_worth: financialSummary.netWorth,
+          monthly_average: financialSummary.monthlyAverage,
+          top_spending_categories: financialSummary.topCategories,
+          recent_transactions: financialSummary.recentTransactions.slice(0, 5),
+        }
+      : null,
+
+    // Conversation Context
+    conversation_context: conversationHistory.slice(0, 5).map((msg) => ({
+      role: msg.role,
+      content: msg.content.substring(0, 200), // Truncate for context
+      intent: msg.intent,
+      timestamp: msg.timestamp,
+    })),
+  }
+
+  return context
+}

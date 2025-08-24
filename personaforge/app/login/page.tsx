@@ -28,12 +28,16 @@ export default function LoginPage() {
     const email = formData.get("email") as string
     const password = formData.get("password") as string
 
+    console.log("Attempting login with:", email) // Debug log
+
     try {
       const user = await authenticateUser(email, password)
       if (!user) {
         setError("Invalid email or password")
         return
       }
+
+      console.log("Login successful, user:", user) // Debug log
 
       // Set auth state first
       setAuthState({ isAuthenticated: true, user })
@@ -44,7 +48,8 @@ export default function LoginPage() {
         router.replace("/")
       }, 800)
     } catch (err: any) {
-      setError(err.message || "Login failed. Please check your credentials.")
+      console.error("Login error:", err) // Debug log
+      setError(err.message || "Login failed. Please check your credentials and ensure the backend is running.")
     } finally {
       setLoading(false)
     }

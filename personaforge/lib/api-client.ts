@@ -112,10 +112,14 @@ class ApiClient {
     })
 
     if (!response.ok) {
-      throw new Error("Login failed")
+      const errorData = await response.json().catch(() => ({}))
+      console.error("Login error:", errorData)
+      throw new Error(errorData.detail || errorData.message || "Invalid credentials")
     }
 
     const data = await response.json()
+    console.log("Login successful:", data) // Debug log
+
     this.setToken(data.access)
 
     if (typeof window !== "undefined") {
@@ -142,7 +146,9 @@ class ApiClient {
 
   // User endpoints
   async getCurrentUser() {
-    return this.request<any>("/user/me/")
+    // This endpoint might not exist in your backend
+    // We'll handle user data in the login response instead
+    return null
   }
 
   // Persona endpoints
