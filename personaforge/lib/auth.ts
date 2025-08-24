@@ -1,36 +1,18 @@
 "use client"
 
 import type { UserProfile, AuthState } from "@/types/user"
+import { apiClient } from "./api-client"
 
 const AUTH_KEY = "pf_auth"
-const USERS_KEY = "pf_users"
-
-// Create a demo user for testing
-const DEMO_USER: UserProfile = {
-  id: "demo-user-1",
-  email: "demo@example.com",
-  name: "Demo User",
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  age: 30,
-  occupation: "Software Engineer",
-  incomeRange: "60k-100k",
-  financialGoals: ["Build emergency fund", "Investment growth", "Retirement planning"],
-  riskTolerance: "moderate",
-  bankingExperience: "intermediate",
-  preferredChannels: ["app-push", "email"],
-  communicationStyle: "friendly",
-  decisionMaking: "research-heavy",
-  financialConcerns: ["Market volatility", "Retirement readiness"],
-  currentBankingProducts: ["Checking account", "Savings account", "Credit card"],
-}
 
 export function getAuthState(): AuthState {
   if (typeof window === "undefined") return { isAuthenticated: false, user: null }
 
   try {
+    const token = localStorage.getItem("access_token")
     const raw = localStorage.getItem(AUTH_KEY)
-    if (!raw) return { isAuthenticated: false, user: null }
+
+    if (!token || !raw) return { isAuthenticated: false, user: null }
 
     const auth = JSON.parse(raw) as AuthState
     return auth
@@ -48,9 +30,46 @@ export function setAuthState(auth: AuthState) {
   }
 }
 
-export function logout() {
+export async function authenticateUser(email: string, password: string): Promise<UserProfile | null> {
+  try {
+    const loginData = await apiClient.login(email, password)
+
+    // Get user profile from backend
+    const userProfile = await apiClient.getCurrentUser()
+
+    const user: UserProfile = {
+      id: userProfile.id.toString(),
+      email: userProfile.email,
+      name: userProfile.name || userProfile.email.split("@")[0],
+      createdAt: userProfile.created_at,
+      updatedAt: userProfile.updated_at || userProfile.created_at,
+      financialGoals: [],
+      preferredChannels: ["app-push", "email"],
+      financialConcerns: [],
+      currentBankingProducts: [],
+    }
+
+    return user
+  } catch (error) {
+    console.error("Authentication failed:", error)
+    return null
+  }
+}
+
+export async function registerUser(email: string, password: string, name: string): Promise<UserProfile> {
+  // For now, we'll use the existing login since the backend doesn't have a register endpoint
+  // In a real implementation, you'd create a register endpoint
+  throw new Error("Registration not implemented yet. Please use existing credentials.")
+}
+
+export async function logout() {
+  try {
+    await apiClient.logout()
+  } catch (error) {
+    console.error("Logout error:", error)
+  }
+
   localStorage.removeItem(AUTH_KEY)
-  // Clear session persona when logging out
   sessionStorage.removeItem("pf_session_persona_id")
 
   // Trigger auth state change event
@@ -59,66 +78,16 @@ export function logout() {
   }
 }
 
+// Keep existing functions for backward compatibility
 export function getAllUsers(): UserProfile[] {
-  if (typeof window === "undefined") return []
-
-  try {
-    const raw = localStorage.getItem(USERS_KEY)
-    if (!raw) {
-      // Initialize with demo user
-      const users = [DEMO_USER]
-      localStorage.setItem(USERS_KEY, JSON.stringify(users))
-      return users
-    }
-    return JSON.parse(raw) as UserProfile[]
-  } catch {
-    return []
-  }
+  return []
 }
 
 export function saveUser(user: UserProfile) {
-  const users = getAllUsers()
-  const existing = users.findIndex((u) => u.id === user.id)
-
-  if (existing >= 0) {
-    users[existing] = user
-  } else {
-    users.push(user)
-  }
-
-  localStorage.setItem(USERS_KEY, JSON.stringify(users))
+  // This would typically sync with backend
+  console.log("User saved:", user)
 }
 
 export function findUserByEmail(email: string): UserProfile | null {
-  return getAllUsers().find((u) => u.email.toLowerCase() === email.toLowerCase()) ?? null
-}
-
-export function authenticateUser(email: string, password: string): UserProfile | null {
-  // Simple password check - in real app this would be hashed
-  const user = findUserByEmail(email)
-  if (!user) return null
-
-  // For demo purposes, any password works if user exists
-  // In real app: compare hashed passwords
-  return user
-}
-
-export function registerUser(email: string, password: string, name: string): UserProfile {
-  const existing = findUserByEmail(email)
-  if (existing) throw new Error("User already exists with this email")
-
-  const user: UserProfile = {
-    id: `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    email: email.toLowerCase().trim(),
-    name: name.trim(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    financialGoals: [],
-    preferredChannels: ["app-push", "email"],
-    financialConcerns: [],
-    currentBankingProducts: [],
-  }
-
-  saveUser(user)
-  return user
+  return null
 }
