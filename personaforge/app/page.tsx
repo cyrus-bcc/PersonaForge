@@ -28,7 +28,7 @@ export default function HomePage() {
               <Link href="/chat">
                 <Button style={{ backgroundColor: "#7F1D1D", color: "white" }} className="gap-2 hover:opacity-90">
                   <Sparkles className="h-4 w-4" />
-                  Open Chat Demo
+                  Open Chat
                 </Button>
               </Link>
             </div>
