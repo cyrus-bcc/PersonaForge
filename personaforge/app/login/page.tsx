@@ -63,12 +63,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
       <div className="w-full max-w-md">
-        {/* Header with red background */}
+        {/* Header with improved styling */}
         <div
-          className="text-center mb-8 p-6 rounded-t-2xl"
+          className="text-center mb-6 p-8 rounded-t-2xl shadow-lg"
           style={{ background: "linear-gradient(135deg, #B91C1C 0%, #7F1D1D 100%)" }}
         >
-          <div className="inline-flex items-center gap-3 text-3xl font-bold text-white mb-4">
+          <div className="inline-flex items-center gap-3 text-4xl font-bold text-white mb-2">
             <Crown className="h-10 w-10 text-white" />
             PersonaForge
           </div>
@@ -76,32 +76,32 @@ export default function LoginPage() {
           <p className="mt-2 text-white/90">Sign in to access your personalized banking AI</p>
         </div>
 
-        <Card className="shadow-2xl border-0 rounded-t-none">
-          <CardHeader className="text-center pb-4">
-            <CardTitle className="text-2xl font-bold text-gray-900">Welcome Back</CardTitle>
+        <Card className="shadow-xl border-0 rounded-t-none rounded-b-2xl">
+          <CardHeader className="text-center pb-2 pt-2">
+            <CardTitle className="text-3xl font-bold text-gray-900">Welcome Back</CardTitle>
             <CardDescription className="text-base text-gray-600">
               Access your financial persona and personalized banking experience
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-6 p-1" style={{ backgroundColor: "#B91C1C" }}>
+              <TabsList className="grid w-full grid-cols-2 p-1 mb-6 rounded-lg" style={{ backgroundColor: "#E5E7EB" }}>
                 <TabsTrigger
                   value="login"
-                  className="text-white data-[state=active]:bg-white data-[state=active]:text-red-700 font-medium"
+                  className="rounded-md font-semibold text-gray-700 data-[state=active]:bg-white data-[state=active]:text-[#B91C1C] data-[state=active]:shadow-sm transition-colors"
                 >
                   Sign In
                 </TabsTrigger>
                 <TabsTrigger
                   value="register"
-                  className="text-white data-[state=active]:bg-white data-[state=active]:text-red-700 font-medium"
+                  className="rounded-md font-semibold text-gray-700 data-[state=active]:bg-white data-[state=active]:text-[#B91C1C] data-[state=active]:shadow-sm transition-colors"
                 >
                   Sign Up
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="login" className="space-y-4">
-                <form onSubmit={handleLogin} className="space-y-4">
+              <TabsContent value="login" className="space-y-6">
+                <form onSubmit={handleLogin} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="login-email" className="text-sm font-medium text-gray-700">
                       Email Address
@@ -113,7 +113,7 @@ export default function LoginPage() {
                       placeholder="your@email.com"
                       required
                       disabled={loading}
-                      className="h-11 border-2 border-gray-300 focus:border-red-600 focus:ring-red-600"
+                      className="h-11 border border-gray-300 focus:border-[#B91C1C] focus-visible:ring-2 focus-visible:ring-[#B91C1C]/50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -127,12 +127,12 @@ export default function LoginPage() {
                       placeholder="Enter your password"
                       required
                       disabled={loading}
-                      className="h-11 border-2 border-gray-300 focus:border-red-600 focus:ring-red-600"
+                      className="h-11 border border-gray-300 focus:border-[#B91C1C] focus-visible:ring-2 focus-visible:ring-[#B91C1C]/50"
                     />
                   </div>
                   <Button
                     type="submit"
-                    className="w-full h-11 text-white font-medium hover:opacity-90"
+                    className="w-full h-11 text-white font-semibold hover:bg-[#7F1D1D] transition-colors"
                     disabled={loading}
                     style={{ backgroundColor: "#B91C1C" }}
                   >
@@ -142,8 +142,8 @@ export default function LoginPage() {
                 </form>
               </TabsContent>
 
-              <TabsContent value="register" className="space-y-4">
-                <form onSubmit={handleRegister} className="space-y-4">
+              <TabsContent value="register" className="space-y-6">
+                <form onSubmit={handleRegister} className="space-y-6">
                   <div className="space-y-2">
                     <Label htmlFor="register-name" className="text-sm font-medium text-gray-700">
                       Full Name
@@ -154,7 +154,7 @@ export default function LoginPage() {
                       type="text"
                       placeholder="John Doe"
                       disabled={true}
-                      className="h-11 border-2 border-gray-300"
+                      className="h-11 border border-gray-300"
                     />
                   </div>
                   <div className="space-y-2">
@@ -167,7 +167,7 @@ export default function LoginPage() {
                       type="email"
                       placeholder="your@email.com"
                       disabled={true}
-                      className="h-11 border-2 border-gray-300"
+                      className="h-11 border border-gray-300"
                     />
                   </div>
                   <div className="space-y-2">
@@ -180,12 +180,12 @@ export default function LoginPage() {
                       type="password"
                       placeholder="Create a password"
                       disabled={true}
-                      className="h-11 border-2 border-gray-300"
+                      className="h-11 border border-gray-300"
                     />
                   </div>
                   <Button
                     type="submit"
-                    className="w-full h-11 text-white font-medium opacity-50"
+                    className="w-full h-11 text-white font-semibold opacity-50"
                     disabled={true}
                     style={{ backgroundColor: "#B91C1C" }}
                   >
@@ -197,37 +197,37 @@ export default function LoginPage() {
             </Tabs>
 
             {error && (
-              <Alert variant="destructive" className="mt-4">
+              <Alert variant="destructive" className="mt-6">
                 <AlertDescription className="text-red-800">{error}</AlertDescription>
               </Alert>
             )}
 
             {success && (
-              <Alert className="mt-4 border-green-200 bg-green-50">
+              <Alert className="mt-6 border-green-200 bg-green-50">
                 <Sparkles className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800">{success}</AlertDescription>
               </Alert>
             )}
 
-            {/* Features Preview with red styling */}
-            <div className="mt-6 grid grid-cols-2 gap-3 text-xs">
+            {/* Features Preview with refined styling */}
+            <div className="mt-8 grid grid-cols-2 gap-4 text-xs">
               <div
-                className="text-center p-3 rounded-lg border-2"
-                style={{ borderColor: "#B91C1C", backgroundColor: "#FEF2F2" }}
+                className="text-center p-4 rounded-xl border-2 transition-transform hover:scale-[1.02]"
+                style={{ borderColor: "#FEF2F2", backgroundColor: "#FEF2F2" }}
               >
-                <Crown className="h-6 w-6 mx-auto mb-2 text-red-700" />
-                <p className="font-medium text-red-700">Real Personas</p>
-                <p className="text-gray-600">From backend data</p>
+                <Crown className="h-8 w-8 mx-auto mb-2 text-red-700" />
+                <p className="font-semibold text-sm text-red-700">Real Personas</p>
+                <p className="text-gray-600 mt-1">From backend data</p>
               </div>
               <div
-                className="text-center p-3 rounded-lg border-2"
-                style={{ borderColor: "#7F1D1D", backgroundColor: "#FEF2F2" }}
+                className="text-center p-4 rounded-xl border-2 transition-transform hover:scale-[1.02]"
+                style={{ borderColor: "#FEF2F2", backgroundColor: "#FEF2F2" }}
               >
-                <Sparkles className="h-6 w-6 mx-auto mb-2" style={{ color: "#7F1D1D" }} />
-                <p className="font-medium" style={{ color: "#7F1D1D" }}>
+                <Sparkles className="h-8 w-8 mx-auto mb-2" style={{ color: "#7F1D1D" }} />
+                <p className="font-semibold text-sm" style={{ color: "#7F1D1D" }}>
                   Smart AI
                 </p>
-                <p className="text-gray-600">Personalized responses</p>
+                <p className="text-gray-600 mt-1">Personalized responses</p>
               </div>
             </div>
           </CardContent>
